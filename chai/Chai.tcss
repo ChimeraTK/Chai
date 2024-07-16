@@ -1,0 +1,17 @@
+Static {
+    content-align: center middle;
+
+}
+
+.main_col {
+  border: vkey $accent;
+}
+
+Button {
+  border: none;
+  margin: 1;
+}
+
+Input {
+  border: none;
+}

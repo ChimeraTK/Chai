@@ -1,2 +1,18 @@
+[tool.poetry]
+name = "chai"
+version = "0.1.0"
+description = "Console Hardware Interface"
+authors = ["Christian Willner <christian.willner@desy.de>"]
+license = "LGPL-3.0 license "
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.08"
+textual = "^0.71.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
 [tool.autopep8]
 max_line_length = 120

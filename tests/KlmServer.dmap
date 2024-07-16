@@ -1,0 +1,3 @@
+# a comment
+device    (sharedMemoryDummy?map=KlmDummy.map)
+timer_dev (doocs:XFEL.RF/TIMER/LLA0M)
