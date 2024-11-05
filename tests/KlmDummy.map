@@ -165,7 +165,7 @@ BOARD0.WORD_PLL_CONF_STR                                              1         
 BOARD0.WORD_PLL_CONF_RST                                              1          276            4      0      1      0    0   RW
 BOARD0.WORD_ADC_ENA                                                   1          256            4      0      1      0    0   RW
 BOARD0.WORD_ADC_OV                                                    1          260            4      0     10      0    0   RO
-BOARD0.WORD_SPI_ADC_SEL                                               1          288            4      0      3      0    0   RW
+TESTING.A.VERY.DEEPLY.NESTED.REGISTER.IN.SEVERAL.LEVELS                               1          288            4      0      3      0    0   RW
 BOARD0.WORD_SPI_ADC_BUSY                                              1          292            4      0      1      0    0   RO
 BOARD0.AREA_SPI_ADC                                                 256         8192         1024      0      8      0    0   RW
 BOARD0.WORD_ADC_FIFO_RESET                                            1          264            4      0     10      0    0   RW

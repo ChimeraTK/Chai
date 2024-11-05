@@ -13,5 +13,5 @@ Button {
 }
 
 Input {
-  border: none;
+  outline: round $accent;
 }

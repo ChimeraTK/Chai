@@ -1,12 +1,10 @@
 from textual.app import App, ComposeResult
 from textual.screen import Screen
 from textual.containers import Horizontal, Vertical, Container
-from textual.widgets import Button, Header, Label, Footer, Static, Placeholder, Tree, Input, Switch, Checkbox, Button, ListView, ListItem, TextArea, RadioSet, RadioButton, DataTable, OptionList, Input
-from textual import events
-from textual.reactive import reactive
+from textual.widgets import Button, Header, Label, Footer, Static, Tree, Input, Checkbox, Button, ListView, ListItem, RadioSet, RadioButton, DataTable, Input
 from textual.message import Message
-from textual.widgets.option_list import Option, Separator
-from textual_plotext import PlotextPlot
+from textual.containers import ScrollableContainer
+
 import socket
 
 from pprint import pp
@@ -14,121 +12,8 @@ from pprint import pp
 import deviceaccess as da
 import numpy as np
 
-
-class PlotScreen(Screen):
-    """Screen with a plot of current Register content."""
-
-    def compose(self) -> ComposeResult:
-        yield Header()
-        yield PlotextPlot()
-        yield Footer()
-
-    def on_mount(self) -> None:
-        plt = self.query_one(PlotextPlot).plt
-        y = plt.sin()
-        plt.scatter(y)
-        plt.title("Scatter Plot")  # to apply a title
-
-    def on_key(self, event: events.Key) -> None:
-        print(event.key)
-        if event.name == "escape":
-            self.app.pop_screen()
-
-
-class RegisterValueField(Input):
-    def on_input_changed(self, input):
-        pass
-
-    def write_data(self, currentRegister) -> None:
-        if isinstance(currentRegister, da.ScalarRegisterAccessor):
-            currentRegister.setAndWrite(currentRegister.getValueType()(self.value))
-
-
-class RegisterTree(Tree):
-
-    tree: Tree[dict] = Tree("Registers")
-
-    def update_tree(self, register_names):
-        self.tree.clear()
-        for reg_name in register_names:
-            split_name = reg_name.split('/')[1:]
-            if len(split_name) > 1:
-                node_added = False
-                for child in self.tree.root.children:
-                    if str(child.label) == split_name[0]:
-                        if len(split_name) > 2:
-                            parent_node = child.add(split_name[1])
-                            parent_node.add_leaf(split_name[2])
-                        else:
-                            child.add_leaf(split_name[1])
-
-                        node_added = True
-                        break
-                if not node_added:
-                    new_node = self.tree.root.add(split_name[0])
-                    new_node.add_leaf(split_name[1])
-            else:
-                self.tree.root.add_leaf(reg_name)
-
-        self.recompose()
-
-    def compose(self) -> ComposeResult:
-        self.tree.root.expand()
-        self.tree.show_root = False
-        yield self.tree
-
-    def on_tree_node_selected(self, selected):
-        if not selected.node.is_root:
-            currentRegisterPath = selected.node.label
-            parent = selected.node.parent
-            if not parent.is_root:
-                currentRegisterPath = f"/{parent.label}/{currentRegisterPath}"
-                self.post_message(self.Selected(currentRegisterPath))
-
-    class Selected(Message):
-        def __init__(self, currentRegister: str) -> None:
-            self.currentRegister = currentRegister
-            super().__init__()
-
-
-ROWS = [
-    ("Value", "Raw (dec)", "Raw (hex)"),
-]
-
-for i in range(10):
-    x = ((i + 23) * 55) % 2234
-    ROWS.append([x, x + 100, hex(x)])
-
-
-class TableApp(App):
-    def compose(self) -> ComposeResult:
-        yield DataTable()
-
-    def on_mount(self) -> None:
-        table = self.query_one(DataTable)
-        table.add_columns(*ROWS[0])
-        table.add_rows(ROWS[1:])
-
-
-class DeviceList(ListView):
-
-    pathes = {}
-
-    class Selected(Message):
-
-        def __init__(self, devicelist, li: ListItem) -> None:
-            self.selectedDevice = str(li.children[0].renderable)
-            self.selectedPath = devicelist.pathes[self.selectedDevice]
-            super().__init__()
-
-    def newList(self, deviceList):
-        self.clear()
-        for device, path in deviceList:
-            self.append(ListItem(Label(device)))
-            self.pathes[device] = path
-
-    def on_list_view_selected(self, _lv, selected: ListItem):
-        self.post_message(self.Selected())
+from .Plotting import PlotScreen
+from .Widgets import RegisterTree, DeviceList, RegisterValueField
 
 
 class DeviceColumn(Vertical):
@@ -186,56 +71,31 @@ class RegisterColumn(Vertical):
             classes="main_col")
 
 
-class PropertiesColumn(Vertical):
+class PropertiesColumn(ScrollableContainer):
     def compose(self) -> ComposeResult:
         yield Vertical(
             Label("Register Path"),
-            Static("/INT32_TEST/2DARRAY_MULTIPLEXED_RAW", id="label_register_path"),
+            Static("", id="label_register_path"),
             Horizontal(
                 Vertical(
                     Label("Dimension"),
-                    Static("1D", id="label_dimensions")
+                    Static("", id="label_dimensions")
                 ),
                 Vertical(
                     Label("nElements"),
-                    Static("12", id="label_nELements")
+                    Static("", id="label_nELements")
                 ),
             ),
             Horizontal(
                 Vertical(
                     Label("Data Type"),
-                    Static("Signed Integer", id="label_data_type")
+                    Static("", id="label_data_type")
                 ),
                 Vertical(
                     Label("wait_for_new_data"),
-                    Static("no", id="label_wait_for_new_data")
+                    Static("", id="label_wait_for_new_data")
                 ),
             ),
-            Horizontal(
-                Vertical(
-                    Label("Numerical Address"),
-                    Vertical(
-                        Label("Bar"),
-                        Static("2"),
-                        Label("Address"),
-                        Static("0"),
-                        Label("Total size (bytes)"),
-                        Static("48"),
-                    ),
-                ),
-                Vertical(
-                    Label("Fixed Point Interpretation"),
-                    Vertical(
-                        Label("Register width"),
-                        Static("22"),
-                        Label("Fractional bits"),
-                        Static("0"),
-                        Label("Signed Flag"),
-                        Static("1"),
-                    ),
-                ),
-            ),
-            # DataTable(),
             RegisterValueField(),
             id="properties",
             classes="main_col")
@@ -259,8 +119,8 @@ class OptionsColumn(Vertical):
                 Checkbox("enabled", id="checkbox_cont_pollread"),
                 Label("Poll frequency", id="label_poll_update_frq"),
                 RadioSet(
-                    RadioButton("1 Hz", value=True),
-                    RadioButton("100 Hz"),
+                    RadioButton("1 Hz", value=True, id="radio_1hz"),
+                    RadioButton("100 Hz", id="radio_100hz"),
                     disabled=True,
                     id="radio_set_freq"
                 ),
@@ -275,12 +135,6 @@ class OptionsColumn(Vertical):
 
 
 class ConsoleHardwareInterface(Container):
-
-    def on_mount(self) -> None:
-        # table = self.query_one(DataTable)
-        # table.add_columns(*ROWS[0])
-        # table.add_rows(ROWS[1:])
-        pass
 
     def compose(self) -> ComposeResult:
         yield Horizontal(
@@ -303,7 +157,6 @@ class MainScreen(Screen):
 
 
 class LayoutApp(App):
-
     currentDevice: da.Device = None
     currentRegister: da.GeneralRegisterAccessor = None
     dmap_file_path: str = None
@@ -330,6 +183,8 @@ class LayoutApp(App):
             self.query_one("#label_device_status").update("Device is open.")
             self.query_one("#btn_close_device").disabled = False
         elif event.button.id == "btn_close_device":
+            rt: RegisterTree = self.query_one(RegisterTree)
+            rt.update_tree([])
             self.currentDevice.close()
             self.query_one("#label_device_status").update("Device is closed.")
         elif event.button.id == "btn_read":
@@ -377,33 +232,78 @@ class LayoutApp(App):
         self.query_one("#label_poll_update_frq").update(freq_text)
         self.query_one("#label_ctn_pollread").update(cont_polll_text)
         self.query_one("#label_wait_for_new_data").update(wait_for_new_data_label_text)
-
-        if reg_info.getNumberOfDimensions() == 0:
+        dd = self.currentDevice.getRegisterCatalogue().getRegister(
+            message.currentRegister).getDataDescriptor()
+        raw_type = dd.rawDataType()
+        np_type = self.get_raw_numpy_type(raw_type)
+        self.query_one("#label_data_type").update(self.build_data_type_string(dd))
+        if np_type == "unknown":
+            # when can this happen?
+            np_type = np.int32
+        if np_type == "void":
+            self.query_one("#label_dimensions").update("Void")
+            self.currentRegister = self.currentDevice.getVoidRegisterAccessor(message.currentRegister)
+        #elif np_type == None:
+            # can that ever happen?
+            #pass            
+        elif reg_info.getNumberOfDimensions() == 0:
             self.query_one("#label_dimensions").update("Scalar")
-            self.currentRegister = self.currentDevice.getScalarRegisterAccessor(np.int32, message.currentRegister)
+            self.currentRegister = self.currentDevice.getScalarRegisterAccessor(np_type, message.currentRegister)
         elif reg_info.getNumberOfDimensions() == 1:
             self.query_one("#label_dimensions").update("1D")
-            self.currentRegister = self.currentDevice.getOneDRegisterAccessor(np.int32, message.currentRegister)
+            self.currentRegister = self.currentDevice.getOneDRegisterAccessor(np_type, message.currentRegister)
         elif reg_info.getNumberOfDimensions() == 2:
-            self.currentRegister = self.currentDevice.getTwoDRegisterAccessor(np.int32, message.currentRegister)
+            self.currentRegister = self.currentDevice.getTwoDRegisterAccessor(np_type, message.currentRegister)
             self.query_one("#label_dimensions").update("2D")
-        self.read_and_update()
+        rvf = self.query_one(RegisterValueField)
+        if self.currentRegister is not None:
+            rvf.register = self.currentRegister
+            rvf.read_and_update()
         self.update_read_write_btn_status()
       # .def("isValid", &ChimeraTK::RegisterInfo::isValid)
       # .def("getRegisterName", DeviceAccessPython::RegisterInfo::getRegisterName)
       # .def("getNumberOfChannels", &ChimeraTK::RegisterInfo::getNumberOfChannels);
 
+    def on_radio_set_changed(self, changed: RadioSet.Changed) -> None:
+        if changed.pressed.id == "radio_1hz":
+            self.query_one(RegisterValueField).refreshrate = 1
+        if changed.pressed.id == "radio_100hz":
+            self.query_one(RegisterValueField).refreshrate = 1 / 100
+
+    def get_raw_numpy_type(self, raw_type):
+        conversion = {
+            "none": None, "int8": np.int8, "uint8": np.uint8, "int16": np.int16,
+            "uint16": np.uint16, "int32": np.int32, "uint32": np.uint32, "int64": np.int64,
+            "uint64": np.uint64, "float32": np.float32, "float64": np.float64, "string": str,
+            "Boolean": bool, "Void": "void", "unknown": "unknown"}
+        return conversion[raw_type.getAsString()]
+
+    def build_data_type_string(self, data_desriptor) -> str:
+        type_string = str(data_desriptor.fundamentalType())
+        if data_desriptor.fundamentalType() == da.FundamentalType.numeric:
+            type_string = "unsigned"
+            if data_desriptor.isSigned():
+                type_string = "signed "
+            if data_desriptor.isIntegral():
+                type_string += " integer"
+            else:
+                type_string += " fractional"
+        return type_string.title()
+
     def read_and_update(self) -> None:
-        self.currentRegister.readLatest()
+        #self.currentRegister.readLatest()
         rvf = self.query_one(RegisterValueField)
-        rvf.clear()
-        rvf.insert_text_at_cursor(str(self.currentRegister[0]))
+        #rvf.read_and_update()
 
     def update_read_write_btn_status(self):
-        pollread = self.query_one("#checkbox_cont_pollread")
-        if self.currentRegister:
-            self.query_one("#btn_read").disabled = (pollread.value and self.currentRegister.isReadable())
-            self.query_one("#btn_write").disabled = (pollread.value and self.currentRegister.isWriteable())
+        pollread: Checkbox = self.query_one("#checkbox_cont_pollread")
+        if self.currentRegister is not None:
+            self.query_one("#btn_read").disabled = (pollread.value or not self.currentRegister.isReadable())
+            self.query_one("#btn_write").disabled = (pollread.value or not self.currentRegister.isWriteable())
+            if pollread.value:
+                self.query_one(RegisterValueField).update_timer.resume()
+            else:
+                self.query_one(RegisterValueField).update_timer.pause()
 
     def on_checkbox_changed(self, changed: Checkbox.Changed):
         if changed.control.id == "checkbox_cont_pollread":

@@ -1,3 +1,4 @@
+#@LOAD_LIB /home/cwillner/software/install-debug/lib/libChimeraTK-DeviceAccess-DoocsBackend.so
 # a comment
 device    (sharedMemoryDummy?map=KlmDummy.map)
-timer_dev (doocs:XFEL.RF/TIMER/LLA0M)
+test_card (sharedMemoryDummy?map=test_card.map)
