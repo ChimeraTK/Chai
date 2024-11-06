@@ -1,10 +1,12 @@
 from textual.app import App, ComposeResult
-from textual.screen import Screen
-from textual.containers import Horizontal, Vertical, Container
+from textual.screen import Screen, ModalScreen
+from textual.containers import Horizontal, Vertical, Container, Center, Middle, Grid
 from textual.widgets import Button, Header, Label, Footer, Static, Tree, Input, Checkbox, Button, ListView, ListItem, RadioSet, RadioButton, DataTable, Input
 from textual.containers import ScrollableContainer
 from textual.message import Message
 from textual.reactive import reactive
+from textual.widgets import DataTable
+from textual import events
 
 import deviceaccess as da
 
@@ -99,6 +101,26 @@ class RegisterValueRow(Horizontal):
         self.raw = raw_value
         self.recompose
 
+class EditValueScreen(ModalScreen):
+    def __init__(self, table: DataTable):
+        super().__init__()
+        self.table = table
+
+    def compose(self) -> ComposeResult:
+        value = self.table.get_cell_at(self.table.cursor_coordinate)
+        yield Grid(
+            Label("Edit value", id="edit_value_dialog_title"),
+            Input(value=str(value), id="edit_value_dialog_input", type = "number"),
+            Button("Ok", variant="primary", id="ok"),
+            Button("Cancel", id="cancel"),
+            id="edit_value_dialog",
+        )
+
+    def on_button_pressed(self, event: Button.Pressed) -> None:
+        if event.button.id == "ok":
+            input = self.query_one(Input)
+            self.table.update_cell_at(coordinate=self.table.cursor_coordinate, value=input.value, update_width=True)
+        self.app.pop_screen()
 
 class RegisterValueField(ScrollableContainer):
 
@@ -116,14 +138,34 @@ class RegisterValueField(ScrollableContainer):
         """Event handler called when widget is added to the app."""
         self.update_timer = self.set_interval(self.refreshrate, self.read_and_update, pause=True)
 
+    def on_key(self, event: events.Key) -> None:
+        if event.key != 'enter':
+            return
+        table = self.query_one(DataTable)
+        if not table:
+            return
+        print("======================== HIER HALLO DIGIT KEY PRESSED:")
+        print(str(event))
+        print(f"table.cursor_coordinate = {table.cursor_coordinate}")
+        self.app.push_screen(EditValueScreen(table))
+        print("========================")
+
     def read_and_update(self) -> None:
         self.rows = []
+        self.remove_children()
+
         if self.register is not None:
             self.register.readLatest()
-            for value in self.register:
-                rvr = RegisterValueRow(str(value))
-                self.mount(rvr)
-                rvr.scroll_visible()
+            table = DataTable()
+            table.add_columns('Value', 'Raw (dec)', 'Raw (hex)')
+            self.mount(table)
+            print("HIER HALLO!!!")
+            for number, value in enumerate(self.register):
+                table.add_row(value,0,0, label=str(number))
+
+            #    rvr = RegisterValueRow(str(value))
+            #    self.mount(rvr)
+            #    rvr.scroll_visible()
         #self.recompose()
 
     def watch_refreshrate(self, refreshrate) -> None:
