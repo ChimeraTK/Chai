@@ -12,7 +12,7 @@ from pprint import pp
 import deviceaccess as da
 import numpy as np
 
-from .Plotting import PlotScreen
+#from .Plotting import PlotScreen
 from .Widgets import RegisterTree, DeviceList, RegisterValueField
 
 
@@ -107,7 +107,7 @@ class OptionsColumn(Vertical):
             Label("Options"),
             Vertical(
                 Checkbox("Read after write", id="checkbox_read_after_write"),
-                Button("Show plot", id="btn_show_plot")
+                #Button("Show plot", id="btn_show_plot")
             ),
             Label("Operations"),
             Vertical(
@@ -191,8 +191,8 @@ class LayoutApp(App):
             self.read_and_update()
         elif event.button.id == "btn_write":
             self.write_value()
-        elif event.button.id == "btn_show_plot":
-            self.push_screen(PlotScreen())
+        #elif event.button.id == "btn_show_plot":
+        #    self.push_screen(PlotScreen())
 
     def write_value(self) -> None:
         self.query_one(RegisterValueField).write_data(self.currentRegister)
@@ -245,7 +245,7 @@ class LayoutApp(App):
             self.currentRegister = self.currentDevice.getVoidRegisterAccessor(message.currentRegister)
         #elif np_type == None:
             # can that ever happen?
-            #pass            
+            #pass
         elif reg_info.getNumberOfDimensions() == 0:
             self.query_one("#label_dimensions").update("Scalar")
             self.currentRegister = self.currentDevice.getScalarRegisterAccessor(np_type, message.currentRegister)
