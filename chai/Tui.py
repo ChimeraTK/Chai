@@ -195,7 +195,7 @@ class LayoutApp(App):
         #    self.push_screen(PlotScreen())
 
     def write_value(self) -> None:
-        self.query_one(RegisterValueField).write_data(self.currentRegister)
+        self.query_one(RegisterValueField).write_data()
         if self.query_one("#checkbox_read_after_write").value:
             self.read_and_update()
 
@@ -237,32 +237,20 @@ class LayoutApp(App):
         raw_type = dd.rawDataType()
         np_type = self.get_raw_numpy_type(raw_type)
         self.query_one("#label_data_type").update(self.build_data_type_string(dd))
-        if np_type == "unknown":
-            # when can this happen?
-            np_type = np.int32
-        if np_type == "void":
-            self.query_one("#label_dimensions").update("Void")
-            self.currentRegister = self.currentDevice.getVoidRegisterAccessor(message.currentRegister)
-        #elif np_type == None:
-            # can that ever happen?
-            #pass
-        elif reg_info.getNumberOfDimensions() == 0:
+        if reg_info.getNumberOfDimensions() == 0:
             self.query_one("#label_dimensions").update("Scalar")
-            self.currentRegister = self.currentDevice.getScalarRegisterAccessor(np_type, message.currentRegister)
         elif reg_info.getNumberOfDimensions() == 1:
             self.query_one("#label_dimensions").update("1D")
-            self.currentRegister = self.currentDevice.getOneDRegisterAccessor(np_type, message.currentRegister)
         elif reg_info.getNumberOfDimensions() == 2:
-            self.currentRegister = self.currentDevice.getTwoDRegisterAccessor(np_type, message.currentRegister)
             self.query_one("#label_dimensions").update("2D")
         rvf = self.query_one(RegisterValueField)
+
+        self.currentRegister = self.currentDevice.getTwoDRegisterAccessor(
+            np_type, message.currentRegister, accessModeFlags=[da.AccessMode.raw])
         if self.currentRegister is not None:
             rvf.register = self.currentRegister
             rvf.read_and_update()
         self.update_read_write_btn_status()
-      # .def("isValid", &ChimeraTK::RegisterInfo::isValid)
-      # .def("getRegisterName", DeviceAccessPython::RegisterInfo::getRegisterName)
-      # .def("getNumberOfChannels", &ChimeraTK::RegisterInfo::getNumberOfChannels);
 
     def on_radio_set_changed(self, changed: RadioSet.Changed) -> None:
         if changed.pressed.id == "radio_1hz":
