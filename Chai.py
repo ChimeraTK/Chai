@@ -1,4 +1,4 @@
-from chai.Tui import LayoutApp
+from chai.MainApp import LayoutApp
 
 if __name__ == "__main__":
     app = LayoutApp()
