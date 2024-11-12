@@ -35,15 +35,12 @@ class RegisterValueRow(Horizontal):
 class EditValueScreen(ModalScreen):
     table: DataTable
     first_submit: bool
-    register: da.TwoDRegisterAccessor
-    channel: int
 
-    def __init__(self, table: DataTable, register: da.TwoDRegisterAccessor, channel: int):
+    def __init__(self, owner, table: DataTable):
         super().__init__()
         self.table = table
         self.first_submit = True
-        self.register = register
-        self.channel = channel
+        self._owner = owner
 
     def compose(self) -> ComposeResult:
         value = self.table.get_cell_at(self.table.cursor_coordinate)
@@ -80,18 +77,7 @@ class EditValueScreen(ModalScreen):
 
     @on(Button.Pressed, "#edit_value_dialog_ok")
     def pressed_ok(self) -> None:
-        input = self.query_one(Input)
-        row = self.table.cursor_coordinate.row
-        if self.table.cursor_coordinate.column == 0:  # "Value" (cooked)
-            self.register.setAsCooked(self.channel, row, input.value)
-        elif self.table.cursor_coordinate.column == 1:  # "Raw (dec)"
-            self.register[self.channel][row] = int(input.value)
-        elif self.table.cursor_coordinate.column == 2:  # "Raw (hex)"
-            self.register[self.channel][row] = int(input.value, 16)
-        self.table.update_cell_at(
-            coordinate=[row,0], value=self.register.getAsCooked(str, self.channel, row), update_width=True)
-        self.table.update_cell_at(coordinate=[row,1], value=str(self.register[self.channel][row]), update_width=True)
-        self.table.update_cell_at(coordinate=[row,2], value=hex(self.register[self.channel][row]), update_width=True)
+        self._owner.cellEditDone(self.query_one(Input).value)
         self.app.pop_screen()
 
     @on(Button.Pressed, "#edit_value_dialog_cancel")
@@ -102,9 +88,11 @@ class RegisterValueField(ScrollableContainer):
 
     _register: da.NumpyGeneralRegisterAccessor | None = None
     _channel: int = 0
+    _isRaw : bool = False
 
     def changeRegister(self, register: da.TwoDRegisterAccessor):
         self._register = register
+        self._isRaw = da.AccessMode.raw in self._register.getAccessModeFlags()
         self._register.readLatest()
         self.update()
 
@@ -115,17 +103,45 @@ class RegisterValueField(ScrollableContainer):
         table = self.query_one(DataTable)
         if not table:
             return
-        self.app.push_screen(EditValueScreen(table, self._register, self._channel))
+        self.app.push_screen(EditValueScreen(self, table))
+
+    def cellEditDone(self, value) -> None :
+        table = self.query_one(DataTable)
+        row = table.cursor_coordinate.row
+
+        if self._isRaw:
+
+            if table.cursor_coordinate.column == 0:  # "Value" (cooked)
+                self._register.setAsCooked(self._channel, row, value)
+            elif table.cursor_coordinate.column == 1:  # "Raw (dec)"
+                self._register[self._channel][row] = int(value)
+            elif table.cursor_coordinate.column == 2:  # "Raw (hex)"
+                self._register[self._channel][row] = int(value, 16)
+
+            table.update_cell_at(
+                coordinate=[row,0], value=self._register.getAsCooked(str, self._channel, row), update_width=True)
+            table.update_cell_at(coordinate=[row,1], value=str(self._register[self._channel][row]), update_width=True)
+            table.update_cell_at(coordinate=[row,2], value=hex(self._register[self._channel][row]), update_width=True)
+
+        else :
+            self._register[self._channel][row] = int(value)
+            table.update_cell_at(coordinate=[row,0], value=str(self._register[self._channel][row]), update_width=True)
 
     def update(self) -> None:
         self.remove_children()
 
         table = DataTable()
-        table.add_columns('Value', 'Raw (dec)', 'Raw (hex)')
-        self.mount(table)
 
-        for element, value in enumerate(self._register[self._channel]):
-            table.add_row(self._register.getAsCooked(str, self._channel, element), value, hex(value), label=str(element))
+        if self._isRaw :
+            table.add_columns('Value', 'Raw (dec)', 'Raw (hex)')
+            for element, value in enumerate(self._register[self._channel]):
+                table.add_row(self._register.getAsCooked(str, self._channel, element), value, hex(value), label=str(element))
+        else :
+            table.add_columns('Value')
+            for element, value in enumerate(self._register[self._channel]):
+                table.add_row(value, label=str(element))
+
+        self.mount(table)
 
 
 class DataView(ScrollableContainer):
