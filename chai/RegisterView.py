@@ -49,7 +49,6 @@ class RegisterTree(Tree):
                 split_name = split_name[1:]
 
             current_level.add_leaf(split_name[0])
-        self.recompose()
 
     def compose(self) -> ComposeResult:
         self._tree.root.expand()
@@ -85,8 +84,9 @@ class RegisterTree(Tree):
         self.app.query_one("#label_poll_update_frq").update(freq_text)
         self.app.query_one("#label_ctn_pollread").update(cont_polll_text)
         self.app.query_one("#label_wait_for_new_data").update(wait_for_new_data_label_text)
-        dd = self._currentDevice.getRegisterCatalogue().getRegister(
-            currentRegisterPath).getDataDescriptor()
+        reginfo = self._currentDevice.getRegisterCatalogue().getRegister(
+            currentRegisterPath)
+        dd = reginfo.getDataDescriptor()
 
         if dd.rawDataType().getAsString() != "unknown" and dd.rawDataType().getAsString() != "none" :
             # raw transfers are supported
@@ -96,6 +96,11 @@ class RegisterTree(Tree):
             # no raw transfer supported
             np_type = Utils.get_raw_numpy_type(dd.minimumDataType())
             flags = []
+
+        if da.AccessMode.wait_for_new_data in reginfo.getSupportedAccessModes() :
+            # we cannot use raw and wait_for_new_data at the same time
+            self._currentDevice.activateAsyncRead()
+            flags = [da.AccessMode.wait_for_new_data]
 
         self.app.query_one("#label_data_type").update(Utils.build_data_type_string(dd))
         if reg_info.getNumberOfDimensions() == 0:
