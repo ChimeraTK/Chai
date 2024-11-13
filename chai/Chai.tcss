@@ -42,3 +42,19 @@ EditValueScreen {
     width: 1fr;
     content-align: center middle;
 }
+
+#register_info {
+    grid-size: 2;
+    grid-gutter: 0;
+    height: 17;
+}
+
+#register_value_table {
+}
+
+#label_register_path {
+    column-span: 2;
+}
+#field_register_path {
+    column-span: 2;
+}
