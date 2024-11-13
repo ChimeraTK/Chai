@@ -68,26 +68,12 @@ class RegisterTree(Tree):
         if currentRegisterPath not in self._register_names:
             return
 
-        self.app.query_one("#label_register_path").update(currentRegisterPath)
         rc = self._currentDevice.getRegisterCatalogue()
-        reg_info = rc.getRegister(currentRegisterPath)
-        self.app.query_one("#label_nELements").update(str(reg_info.getNumberOfElements()))
-        wait_for_new_data_label_text = "no"
-        cont_polll_text = "Continous Poll"
-        freq_text = "Poll frequency"
+        registerInfo = rc.getRegister(currentRegisterPath)
 
-        if da.AccessMode.wait_for_new_data in reg_info.getSupportedAccessModes():
-            wait_for_new_data_label_text = "yes"
-            cont_polll_text = "Continous Read"
-            freq_text = "Update frequency"
+        self.app.query_one("RegisterInfo").changeRegister(registerInfo)
 
-        self.app.query_one("#label_poll_update_frq").update(freq_text)
-        self.app.query_one("#label_ctn_pollread").update(cont_polll_text)
-        self.app.query_one("#label_wait_for_new_data").update(wait_for_new_data_label_text)
-        reginfo = self._currentDevice.getRegisterCatalogue().getRegister(
-            currentRegisterPath)
-        dd = reginfo.getDataDescriptor()
-
+        dd = registerInfo.getDataDescriptor()
         if dd.rawDataType().getAsString() != "unknown" and dd.rawDataType().getAsString() != "none" :
             # raw transfers are supported
             np_type = Utils.get_raw_numpy_type(dd.rawDataType())
@@ -97,18 +83,10 @@ class RegisterTree(Tree):
             np_type = Utils.get_raw_numpy_type(dd.minimumDataType())
             flags = []
 
-        if da.AccessMode.wait_for_new_data in reginfo.getSupportedAccessModes() :
+        if da.AccessMode.wait_for_new_data in registerInfo.getSupportedAccessModes() :
             # we cannot use raw and wait_for_new_data at the same time
             self._currentDevice.activateAsyncRead()
             flags = [da.AccessMode.wait_for_new_data]
-
-        self.app.query_one("#label_data_type").update(Utils.build_data_type_string(dd))
-        if reg_info.getNumberOfDimensions() == 0:
-            self.app.query_one("#label_dimensions").update("Scalar")
-        elif reg_info.getNumberOfDimensions() == 1:
-            self.app.query_one("#label_dimensions").update("1D")
-        elif reg_info.getNumberOfDimensions() == 2:
-            self.app.query_one("#label_dimensions").update("2D")
 
         register = self._currentDevice.getTwoDRegisterAccessor(np_type, currentRegisterPath, accessModeFlags=flags)
         self.app.query_one(RegisterValueField).changeRegister(register)
