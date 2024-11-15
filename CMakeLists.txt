@@ -8,8 +8,6 @@ set(${PROJECT_NAME}_MINOR_VERSION 01)
 set(${PROJECT_NAME}_PATCH_VERSION 00)
 include(cmake/set_version_numbers.cmake)
 
-set(DESTDIR share/${PROJECT_NAME}${${PROJECT_NAME}_MAJOR_VERSION}.${${PROJECT_NAME}_MINOR_VERSION})
-
 find_package(Python 3 REQUIRED COMPONENTS Interpreter)
 
 # install Python modules to correct platform-dependent directory (if installing to system prefix)
@@ -19,6 +17,6 @@ else()
   set(python_install_path "lib/python${Python_VERSION_MAJOR}.${Python_VERSION_MINOR}/site-packages")
 endif()
 
-# install programs and server types
+# install programs and python modules
 install(PROGRAMS ${PROJECT_SOURCE_DIR}/Chai.py DESTINATION bin RENAME chai)
 install(DIRECTORY ${PROJECT_SOURCE_DIR}/chai DESTINATION "${python_install_path}")
