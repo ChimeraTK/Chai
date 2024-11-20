@@ -1,7 +1,8 @@
 from textual.app import App, ComposeResult
 from textual.screen import Screen
 from textual.containers import Horizontal,  Container
-from textual.widgets import Header, Footer
+from textual.widgets import Header, Footer, TabbedContent, TabPane
+from textual import on
 
 import socket
 
@@ -15,13 +16,28 @@ from chai.ActionsView import ActionsView
 
 class ConsoleHardwareInterface(Container):
 
+    BINDINGS = [
+        ("d", "show_tab('d')", "Device view"),
+        ("r", "show_tab('r')", "Register view"),
+    ]
+
     def compose(self) -> ComposeResult:
-        yield Horizontal(
-            DeviceView(),
-            RegisterView(),
-            DataView(),
-            ActionsView()
-        )
+        with TabbedContent(initial="d"):
+            with TabPane("Device", id="d"):
+                yield DeviceView()
+            with TabPane("Registers", id="r"):
+                yield Horizontal(
+                    RegisterView(),
+                    DataView(),
+                    ActionsView()
+                )
+            # TODO: Implement the Options tab
+            # with TabPane("Options", id="o"):
+            #     yield Static("To be implemented")
+
+    def action_show_tab(self, tab: str) -> None:
+        """Switch to a new tab."""
+        self.get_child_by_type(TabbedContent).active = tab
 
 
 class MainScreen(Screen):
@@ -32,7 +48,7 @@ class MainScreen(Screen):
     def compose(self) -> ComposeResult:
         yield Header()
         yield ConsoleHardwareInterface()
-        yield Footer()
+        yield Footer(id="footer")
 
 
 class LayoutApp(App):
@@ -42,8 +58,6 @@ class LayoutApp(App):
 
     def on_mount(self) -> None:
         self.push_screen(MainScreen())
-
-
 
     def exit(self) -> None:
         print("closed")

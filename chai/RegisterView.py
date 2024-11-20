@@ -1,3 +1,5 @@
+from enum import Enum
+
 from textual.app import ComposeResult
 from textual.containers import Horizontal, Vertical
 from textual.widgets import Button, Label, Tree, Input, Checkbox, Button, Input
@@ -11,11 +13,27 @@ from chai import Utils
 import deviceaccess as da
 
 
+class DeviceStatus(Enum):
+    Open = 1
+    Closed = 2
+    NoDeviceLoaded = 3
+
+
 class RegisterTree(Tree):
 
     _tree: Tree[dict] = Tree("Registers")
     _register_names = []
     _currentDevice: da.Device | None = None
+
+    def _changeDeviceStatus(self, status: DeviceStatus) -> None:
+        if self._currentDevice is None:
+            raise ValueError("No device loaded.")
+        if status == DeviceStatus.Open:
+            self._currentDevice.open()
+        elif status == DeviceStatus.Closed:
+            self._currentDevice.close()
+        else:
+            raise ValueError(f"Unknown status: {status}")
 
     def changeDevice(self, device: da.Device | None):
         self._tree.clear()
@@ -57,7 +75,7 @@ class RegisterTree(Tree):
 
     def on_tree_node_selected(self, selected):
         if selected.node.is_root:
-          return
+            return
 
         currentRegisterPath = selected.node.label
         parent = selected.node.parent
@@ -74,16 +92,16 @@ class RegisterTree(Tree):
         self.app.query_one("RegisterInfo").changeRegister(registerInfo)
 
         dd = registerInfo.getDataDescriptor()
-        if dd.rawDataType().getAsString() != "unknown" and dd.rawDataType().getAsString() != "none" :
+        if dd.rawDataType().getAsString() != "unknown" and dd.rawDataType().getAsString() != "none":
             # raw transfers are supported
             np_type = Utils.get_raw_numpy_type(dd.rawDataType())
             flags = [da.AccessMode.raw]
-        else :
+        else:
             # no raw transfer supported
             np_type = Utils.get_raw_numpy_type(dd.minimumDataType())
             flags = []
 
-        if da.AccessMode.wait_for_new_data in registerInfo.getSupportedAccessModes() :
+        if da.AccessMode.wait_for_new_data in registerInfo.getSupportedAccessModes():
             # we cannot use raw and wait_for_new_data at the same time
             self._currentDevice.activateAsyncRead()
             flags = [da.AccessMode.wait_for_new_data]
@@ -91,7 +109,6 @@ class RegisterTree(Tree):
         register = self._currentDevice.getTwoDRegisterAccessor(np_type, currentRegisterPath, accessModeFlags=flags)
         self.app.query_one(RegisterValueField).changeRegister(register)
         self.app.query_one(ActionsView).changeRegister(register)
-
 
 
 class RegisterView(Vertical):
@@ -124,3 +141,8 @@ class RegisterView(Vertical):
     def _pressed_expand(self) -> None:
         rt = self.query_one(RegisterTree)
         rt._tree.root.expand_all()
+
+
+class DeviceStatus(Enum):
+    Open = 1
+    Closed = 2
