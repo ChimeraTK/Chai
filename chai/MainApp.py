@@ -56,6 +56,11 @@ class LayoutApp(App):
     currentRegister: da.GeneralRegisterAccessor = None
     dmap_file_path: str = None
 
+    def __init__(self, root_dir: str, dmap_file: str):
+        self.root_dir = root_dir
+        self.dmap_file_path = dmap_file
+        super().__init__()
+
     def on_mount(self) -> None:
         self.push_screen(MainScreen())
 

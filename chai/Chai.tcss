@@ -58,3 +58,11 @@ EditValueScreen {
 #field_register_path {
     column-span: 2;
 }
+
+DeviceView {
+    layout: grid;
+    grid-size: 2 5;
+    grid-columns: 1fr 1fr;
+    grid-rows: auto 1fr auto auto auto;
+    grid-gutter: 1;
+}
