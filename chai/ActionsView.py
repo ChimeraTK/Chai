@@ -1,6 +1,6 @@
 import asyncio
-from textual.app import  ComposeResult
-from textual.containers import  Vertical
+from textual.app import ComposeResult
+from textual.containers import Vertical, Widget
 from textual.widgets import Button, Label, Static, Checkbox, Button, RadioSet, RadioButton
 
 from textual import on, work
@@ -20,39 +20,14 @@ class ActionsView(Vertical):
     _update_timer: Timer | None = None
     _pushMode: bool
     _last_update_time = None
-    _avg_update_interval_list: deque = deque(maxlen = 10)
+    _avg_update_interval_list: deque = deque(maxlen=10)
 
     def compose(self) -> ComposeResult:
         self._pushMode = self._currentRegister is not None and    \
             da.AccessMode.wait_for_new_data in self._currentRegister.getAccessModeFlags()
-
-        self.add_class("main_col")
-
-        yield Label("Options")
-        yield Vertical(
-                Checkbox("Read after write", id="checkbox_read_after_write"),
-                #Button("Show plot", id="btn_show_plot")
-            )
-        yield Label("Operations")
-        yield Vertical(
-                Button("Read", disabled=True, id="btn_read"),
-                Button("Write", disabled=True, id="btn_write"),
-            )
-        yield Label("Continous Read" if self._pushMode else "Continous Poll", id="label_ctn_pollread")
-        yield Vertical(
-                Checkbox("enabled", id="checkbox_cont_pollread"),
-                Label("Poll frequency", id="label_poll_update_frq"),
-                RadioSet(
-                    RadioButton("1 Hz", value=True, id="radio_hz_1"),
-                    RadioButton("100 Hz", id="radio_hz_100"),
-                    disabled=True,
-                    id="radio_set_freq"
-                ) if not self._pushMode else Static(),
-                Label("Last update time" if self._pushMode else "Last poll time"),
-                Label("(never)", id="last_update_time"),
-                Label("Avg. update interval"),
-                Label("(n/a)", id="update_interval"),
-            )
+        yield ActionGroup()
+        yield PollGroup(pushMode=self._pushMode)
+        yield InfoGroup(pushMode=self._pushMode)
 
     def changeRegister(self, register: da.GeneralRegisterAccessor):
         if self._update_timer is not None:
@@ -76,13 +51,11 @@ class ActionsView(Vertical):
         self.app.query_one(RegisterValueField).update()
         self.query_one("#last_update_time").update(str(datetime.now()))
 
-
     @on(Button.Pressed, "#btn_write")
     def _pressed_write(self) -> None:
         self._currentRegister.write()
-        if self.query_one("#checkbox_read_after_write").value:
+        if self.app.query_one("#checkbox_read_after_write").value:
             self.pressed_read()
-
 
     def _update_read_write_btn_status(self):
         pollread: Checkbox = self.query_one("#checkbox_cont_pollread")
@@ -112,30 +85,87 @@ class ActionsView(Vertical):
 
         self._last_update_time = now
 
-
     @on(Checkbox.Changed, "#checkbox_cont_pollread")
     def on_checkbox_changed(self, changed: Checkbox.Changed):
         self._update_read_write_btn_status()
         if not self._pushMode:
             self.query_one("#radio_set_freq").disabled = not changed.control.value
             self._update_timer_hz()
-            if changed.control.value :
+            if changed.control.value:
                 self._update_timer.resume()
             else:
                 self._update_timer.pause()
-        else :
+        else:
             if changed.control.value:
                 self._update_push_loop()
-            else :
+            else:
                 self._currentRegister.interrupt()
 
     def on_radio_set_changed(self, changed: RadioSet.Changed) -> None:
         self._update_timer_hz()
 
-    def _update_timer_hz(self, pause : bool=False) -> None:
+    def _update_timer_hz(self, pause: bool = False) -> None:
         set = self.query_one("#radio_set_freq", RadioSet)
         if self._update_timer is not None:
             self._update_timer.stop()
         assert set.pressed_button.id.startswith("radio_hz_")
         hz = int(set.pressed_button.id[9:])
         self._update_timer = self.set_interval(1/hz, self._pressed_read, pause=pause)
+
+
+class UpdateLabel(Label):
+    def __init__(self, pushMode: bool, id: str):
+        self.prefix_text = "Last update time: " if pushMode else "Last poll time: "
+        super().__init__(self.prefix_text + "(never)", id=id)
+
+    def update(self, time: str):
+        super().update(self.prefix_text + time)
+
+
+class AverageLabel(Label):
+    prefix_text = "Avg. update interval: "
+
+    def __init__(self, id: str):
+        super().__init__(self.prefix_text + "(n/a)", id=id)
+
+    def update(self, time: str):
+        print("average label update")
+        super().update(self.prefix_text + time)
+
+
+class ActionGroup(Widget):
+    def compose(self):
+
+        # yield Button("Show plot", id="btn_show_plot")
+        yield Button("Read", disabled=True, id="btn_read")
+        yield Button("Write", disabled=True, id="btn_write")
+        return super().compose()
+
+
+class InfoGroup(Widget):
+    def __init__(self, *children, name=None, id=None, classes=None, disabled=False, pushMode=False):
+        self.pushMode = pushMode
+        super().__init__(*children, name=name, id=id, classes=classes, disabled=disabled)
+
+    def compose(self):
+        yield UpdateLabel(self.pushMode, id="last_update_time")
+        yield AverageLabel(id="update_interval")
+        return super().compose()
+
+
+class PollGroup(Widget):
+    def __init__(self, *children, name=None, id=None, classes=None, disabled=False, pushMode=False):
+        self._pushMode = pushMode
+        super().__init__(*children, name=name, id=id, classes=classes, disabled=disabled)
+
+    def compose(self):
+        yield Label("Continous Read" if self._pushMode else "Continous Poll", id="label_ctn_pollread")
+        yield Checkbox("enabled", id="checkbox_cont_pollread")
+        yield Label("Poll frequency", id="label_poll_update_frq") if not self._pushMode else Static()
+        yield RadioSet(
+            RadioButton("1 Hz", value=True, id="radio_hz_1"),
+            RadioButton("100 Hz", id="radio_hz_100"),
+            disabled=True,
+            id="radio_set_freq"
+        ) if not self._pushMode else Static()
+        return super().compose()

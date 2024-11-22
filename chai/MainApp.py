@@ -10,8 +10,7 @@ import deviceaccess as da
 
 from chai.DeviceView import DeviceView
 from chai.RegisterView import RegisterView
-from chai.DataView import DataView
-from chai.ActionsView import ActionsView
+from chai.OptionsView import OptionsView
 
 
 class ConsoleHardwareInterface(Container):
@@ -26,14 +25,11 @@ class ConsoleHardwareInterface(Container):
             with TabPane("Device", id="d"):
                 yield DeviceView()
             with TabPane("Registers", id="r"):
-                yield Horizontal(
-                    RegisterView(),
-                    DataView(),
-                    ActionsView()
-                )
+                yield RegisterView()
+
             # TODO: Implement the Options tab
-            # with TabPane("Options", id="o"):
-            #     yield Static("To be implemented")
+            with TabPane("Options", id="o"):
+                yield OptionsView()
 
     def action_show_tab(self, tab: str) -> None:
         """Switch to a new tab."""

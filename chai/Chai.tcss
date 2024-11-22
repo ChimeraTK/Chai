@@ -7,7 +7,7 @@ Static {
   border: round $accent;
 }
 
-Button {
+.sButton {
   border: none;
   margin: 1;
 }
@@ -65,4 +65,49 @@ DeviceView {
     grid-columns: 1fr 1fr;
     grid-rows: auto 1fr auto auto auto;
     grid-gutter: 1;
+}
+
+RegisterView {
+    layout: grid;
+    grid-size: 3 2;
+    grid-columns: 1fr 1fr 1fr;
+    grid-rows: 1fr auto;
+    grid-gutter: 1;
+}
+
+ActionsView {
+    layout: grid;
+    grid-size: 3 5;
+    grid-columns: auto auto auto;
+    grid-rows: auto auto auto auto auto;
+    column-span: 2;
+    grid-gutter: 1;
+}
+
+DataView {
+    layout: grid;
+    grid-size: 2 2;
+    grid-columns: 1fr 1fr;
+    grid-rows: auto 1fr;
+    grid-gutter: 1;
+}
+
+RegisterValueField {
+    column-span: 2;
+}
+
+Label {
+    content-align: center middle;
+}
+
+RegisterSelection {
+    layout: grid;
+    grid-size: 2 2;
+    grid-columns: 1fr 1fr;
+    grid-rows:   1fr auto;
+    grid-gutter: 1;
+}
+
+RegisterTree {
+    column-span: 2;
 }

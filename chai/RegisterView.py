@@ -1,12 +1,14 @@
 from enum import Enum
 
 from textual.app import ComposeResult
-from textual.containers import Horizontal, Vertical
+from textual.containers import Horizontal, Vertical, Widget
 from textual.widgets import Button, Label, Tree, Input, Checkbox, Button, Input
 from textual import on
 
 from chai.DataView import RegisterValueField
 from chai.ActionsView import ActionsView
+from chai.DataView import DataView
+from chai.DataView import RegisterInfo
 
 from chai import Utils
 
@@ -113,24 +115,10 @@ class RegisterTree(Tree):
 
 class RegisterView(Vertical):
     def compose(self) -> ComposeResult:
-        yield Vertical(
-            RegisterTree("Registers"),
-            Vertical(
-                Label("Find Module", classes="label"),
-                Input(),
-            ),
-            Horizontal(
-                Vertical(
-                    Checkbox("Autoselect previous register"),
-                    Button("Collapse all",  id="btn_collapse"),
-                ),
-                Vertical(
-                    Checkbox("Sort registers"),
-                    Button("Expand all", id="btn_expand"),
-                ),
-            ),
-            id="registers",
-            classes="main_col")
+        yield RegisterSelection()
+        yield RegisterInfo(id="register_info")
+        yield DataView()
+        yield ActionsView()
 
     @on(Button.Pressed, "#btn_collapse")
     def _pressed_collapse(self) -> None:
@@ -146,3 +134,18 @@ class RegisterView(Vertical):
 class DeviceStatus(Enum):
     Open = 1
     Closed = 2
+
+
+class RegisterSelection(Widget):
+    def compose(self) -> ComposeResult:
+        yield RegisterTree("Registers")
+        yield Button("Expand all", id="btn_expand")
+        yield Button("Collapse all",  id="btn_collapse")
+        # TODO: Implement filtering:
+        # yield Input(id="input_find_module", placeholder="Find module")
+        # TODO: Implement autoselect previous register, what is this?
+        # yield Checkbox("Autoselect previous register")
+        # TODO: Implement sorting:
+        # yield Checkbox("Sort registers")
+
+        return super().compose()
