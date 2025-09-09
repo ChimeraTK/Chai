@@ -1,4 +1,4 @@
-from textual.app import  ComposeResult
+from textual.app import ComposeResult
 from textual.screen import ModalScreen
 from textual.containers import Horizontal, Vertical, Container, Grid
 from textual.widgets import Button, Label, Static, Input, Button, DataTable, Input
@@ -35,6 +35,7 @@ class RegisterValueRow(Horizontal):
         self.raw = raw_value
         self.recompose
 
+
 class EditValueScreen(ModalScreen):
     table: DataTable
     first_submit: bool
@@ -52,7 +53,7 @@ class EditValueScreen(ModalScreen):
         if col == 0:
             # cooked
             validPattern = r'^[0-9]*(\.[0-9]*)?$'
-        elif col == 1 :
+        elif col == 1:
             # raw decimal
             validPattern = r'^[0-9]*$'
         elif col == 2:
@@ -87,13 +88,14 @@ class EditValueScreen(ModalScreen):
     def pressed_cancel(self) -> None:
         self.app.pop_screen()
 
+
 class RegisterValueField(ScrollableContainer):
 
     _register: da.TwoDRegisterAccessor | None = None
     _channel: int = 0
-    _isRaw : bool = False
+    _isRaw: bool = False
 
-    def compose(self) -> ComposeResult :
+    def compose(self) -> ComposeResult:
         table = DataTable()
         table.add_columns('Value', 'Raw (dec)', 'Raw (hex)')
         yield table
@@ -119,7 +121,7 @@ class RegisterValueField(ScrollableContainer):
             return
         self.app.push_screen(EditValueScreen(self, table))
 
-    def cellEditDone(self, value) -> None :
+    def cellEditDone(self, value) -> None:
         table = self.query_one(DataTable)
         row = table.cursor_coordinate.row
 
@@ -133,27 +135,33 @@ class RegisterValueField(ScrollableContainer):
                 self._register[self._channel][row] = int(value, 16)
 
             table.update_cell_at(
-                coordinate=[row,0], value=self._register.getAsCooked(str, self._channel, row), update_width=True)
-            table.update_cell_at(coordinate=[row,1], value=str(self._register[self._channel][row]), update_width=True)
-            table.update_cell_at(coordinate=[row,2], value=hex(self._register[self._channel][row]), update_width=True)
+                coordinate=[row, 0], value=self._register.getAsCooked(str, self._channel, row), update_width=True)
+            table.update_cell_at(coordinate=[row, 1], value=str(self._register[self._channel][row]), update_width=True)
+            table.update_cell_at(coordinate=[row, 2], value=hex(self._register[self._channel][row]), update_width=True)
 
-        else :
+        else:
             self._register[self._channel][row] = int(value)
-            table.update_cell_at(coordinate=[row,0], value=str(self._register[self._channel][row]), update_width=True)
+            table.update_cell_at(coordinate=[row, 0], value=str(self._register[self._channel][row]), update_width=True)
 
     def update(self) -> None:
         table = self.query_one(DataTable)
         table.clear(True)
 
-        if self._isRaw :
+        if self._isRaw:
             table.add_columns('Value', 'Raw (dec)', 'Raw (hex)')
             for element, value in enumerate(self._register[self._channel]):
-                table.add_row(self._register.getAsCooked(str, self._channel, element), value, hex(value), label=str(element))
-        else :
+                table.add_row(
+                    self._register.getAsCooked(
+                        str,
+                        self._channel,
+                        element),
+                    value,
+                    hex(value),
+                    label=str(element))
+        else:
             table.add_columns('Value')
             for element, value in enumerate(self._register[self._channel]):
                 table.add_row(value, label=str(element))
-
 
 
 class RegisterInfo(Grid):
@@ -203,14 +211,14 @@ class RegisterInfo(Grid):
         elif registerInfo.getNumberOfDimensions() == 2:
             self.query_one("#label_dimensions").update("2D")
 
-    def on_input_submitted(self, change: Input.Submitted) -> None :
-        if change.value.isdigit() :
+    def on_input_submitted(self, change: Input.Submitted) -> None:
+        if change.value.isdigit():
             value = int(change.value)
-        else :
+        else:
             # might be empty...
             value = 0
         if value >= self._nChannels:
-            value = self._nChannels-1
+            value = self._nChannels - 1
             change.input.value = str(value)
             self.notify("Channel out of range.", severity="warning")
         self.app.query_one(RegisterValueField).changeChannel(value)
