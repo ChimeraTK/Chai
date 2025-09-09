@@ -1,6 +1,7 @@
 import numpy as np
 import deviceaccess as da
 
+
 def get_raw_numpy_type(raw_type):
     conversion = {
         "none": None, "int8": np.int8, "uint8": np.uint8, "int16": np.int16,
@@ -8,6 +9,7 @@ def get_raw_numpy_type(raw_type):
         "uint64": np.uint64, "float32": np.float32, "float64": np.float64, "string": str,
         "Boolean": bool, "Void": "void", "unknown": "unknown"}
     return conversion[raw_type.getAsString()]
+
 
 def build_data_type_string(data_desriptor) -> str:
     type_string = str(data_desriptor.fundamentalType())

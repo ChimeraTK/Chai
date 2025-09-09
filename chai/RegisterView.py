@@ -57,7 +57,7 @@ class RegisterTree(Tree):
 
     def on_tree_node_selected(self, selected):
         if selected.node.is_root:
-          return
+            return
 
         currentRegisterPath = selected.node.label
         parent = selected.node.parent
@@ -74,16 +74,16 @@ class RegisterTree(Tree):
         self.app.query_one("RegisterInfo").changeRegister(registerInfo)
 
         dd = registerInfo.getDataDescriptor()
-        if dd.rawDataType().getAsString() != "unknown" and dd.rawDataType().getAsString() != "none" :
+        if dd.rawDataType().getAsString() != "unknown" and dd.rawDataType().getAsString() != "none":
             # raw transfers are supported
             np_type = Utils.get_raw_numpy_type(dd.rawDataType())
             flags = [da.AccessMode.raw]
-        else :
+        else:
             # no raw transfer supported
             np_type = Utils.get_raw_numpy_type(dd.minimumDataType())
             flags = []
 
-        if da.AccessMode.wait_for_new_data in registerInfo.getSupportedAccessModes() :
+        if da.AccessMode.wait_for_new_data in registerInfo.getSupportedAccessModes():
             # we cannot use raw and wait_for_new_data at the same time
             self._currentDevice.activateAsyncRead()
             flags = [da.AccessMode.wait_for_new_data]
@@ -91,7 +91,6 @@ class RegisterTree(Tree):
         register = self._currentDevice.getTwoDRegisterAccessor(np_type, currentRegisterPath, accessModeFlags=flags)
         self.app.query_one(RegisterValueField).changeRegister(register)
         self.app.query_one(ActionsView).changeRegister(register)
-
 
 
 class RegisterView(Vertical):
@@ -105,7 +104,7 @@ class RegisterView(Vertical):
             Horizontal(
                 Vertical(
                     Checkbox("Autoselect previous register"),
-                    Button("Collapse all",  id="btn_collapse"),
+                    Button("Collapse all", id="btn_collapse"),
                 ),
                 Vertical(
                     Checkbox("Sort registers"),
