@@ -72,10 +72,14 @@ class DeviceView(Vertical):
             id="devices",
             classes="main_col")
 
+    def on_mount(self) -> None:
+        if len(sys.argv) > 1:
+            self.query_one("#field_map_file").value = sys.argv[1]
+            self.query_one("#Btn_load_boards").press()
+
     @on(Button.Pressed, "#Btn_load_boards")
     def _pressed_load_boards(self) -> None:
-        # dmap_file_path = self.query_one("#field_map_file").value
-        dmap_file_path = "./tests/KlmServer.dmap"
+        dmap_file_path = self.query_one("#field_map_file").value
 
         self.query_one(DeviceList).updateDmapFile(dmap_file_path)
         da.setDMapFilePath(dmap_file_path)
