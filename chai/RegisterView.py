@@ -88,7 +88,10 @@ class RegisterTree(Tree):
             self._currentDevice.activateAsyncRead()
             flags = [da.AccessMode.wait_for_new_data]
 
-        register = self._currentDevice.getTwoDRegisterAccessor(np_type, currentRegisterPath, accessModeFlags=flags)
+        if registerInfo.getDataDescriptor().fundamentalType() != da.FundamentalType.nodata:
+            register = self._currentDevice.getTwoDRegisterAccessor(np_type, currentRegisterPath, accessModeFlags=flags)
+        else:
+            register = self._currentDevice.getVoidRegisterAccessor(currentRegisterPath, accessModeFlags=flags)
         self.app.query_one(RegisterValueField).changeRegister(register)
         self.app.query_one(ActionsView).changeRegister(register)
 
