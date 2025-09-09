@@ -27,16 +27,34 @@ class DeviceList(ListView):
     def _parseDmapFile(self, dmapPath: str) -> dict[str, str]:
         devices = {}
         try:
+            lineCounter = 0
             for line in open(dmapPath):
-                if line and not line.startswith("@") and not line.startswith("#"):
-                    device, path = line.split()
-                    devices[device] = path
+                lineCounter += 1
+
+                # remove comments from line
+                line_no_comment = line.split('#', maxsplit=1)[0].strip()
+                # remove empty and comment lines as well as @ commands
+                if line_no_comment == "" or line.startswith("@"):
+                    continue
+
+                # split remaining line at first space
+                splitline = line.split(maxsplit=1)
+                if len(splitline) != 2:
+                    self.notify(f"Could not parse DMAP file {dmapPath}, parsing error in line {lineCounter}",
+                                title="Parsing error",
+                                severity="warning",
+                                )
+                    return {}
+
+                alias_name, cdd = splitline
+                devices[alias_name] = cdd
         except FileNotFoundError:
             self.notify(
                 f"Could not open file: {dmapPath}",
                 title="File not found",
                 severity="warning",
             )
+            return {}
         return devices
 
 
