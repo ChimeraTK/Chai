@@ -1,6 +1,6 @@
 from textual.app import ComposeResult
 from textual.containers import Vertical
-from textual.widgets import Button,  Label, Static, Input,Button, ListView, ListItem, Input
+from textual.widgets import Button, Label, Static, Input, Button, ListView, ListItem, Input
 from textual.message import Message
 
 from textual import on
@@ -11,7 +11,7 @@ from chai.RegisterView import RegisterTree
 
 
 class DeviceList(ListView):
-    _devices: dict[str,str]
+    _devices: dict[str, str]
 
     def updateDmapFile(self, filename: str):
         self.clear()
@@ -24,7 +24,7 @@ class DeviceList(ListView):
         self.app.query_one("#field_device_identifier").update(self._devices[dev_string])
         self.app.query_one(RegisterTree).changeDevice(da.Device(dev_string))
 
-    def _parseDmapFile(self, dmapPath: str) -> dict[str,str]:
+    def _parseDmapFile(self, dmapPath: str) -> dict[str, str]:
         devices = {}
         try:
             for line in open(dmapPath):
@@ -38,6 +38,7 @@ class DeviceList(ListView):
                 severity="warning",
             )
         return devices
+
 
 class DeviceView(Vertical):
     def compose(self) -> ComposeResult:
@@ -59,7 +60,7 @@ class DeviceView(Vertical):
                     ),
                     Vertical(
                         Label("Device Identifier"),
-                        Static("",  id="field_device_identifier")
+                        Static("", id="field_device_identifier")
                     ),
                     Vertical(
                         Label("dmap file path"),
@@ -82,7 +83,6 @@ class DeviceView(Vertical):
         self.SUB_TITLE = dmap_file_path
         self.query_one("#label_device_status").update("Device is open.")
         self.query_one("#btn_close_device").disabled = False
-
 
     @on(Button.Pressed, "#btn_close_device")
     def _pressed_close_device(self) -> None:
