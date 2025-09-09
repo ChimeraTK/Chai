@@ -35,12 +35,12 @@ class ActionsView(Vertical):
         )
         yield Label("Operations")
         yield Vertical(
-            Button("Read", disabled=True, id="btn_read"),
-            Button("Write", disabled=True, id="btn_write"),
+            Button("Read", disabled=True if self._currentRegister is None else not self._currentRegister.isReadable(), id="btn_read"),
+            Button("Write", disabled=True if self._currentRegister is None else not self._currentRegister.isWriteable(), id="btn_write"),
         )
         yield Label("Continous Read" if self._pushMode else "Continous Poll", id="label_ctn_pollread")
         yield Vertical(
-            Checkbox("enabled", id="checkbox_cont_pollread"),
+            Checkbox("enabled", id="checkbox_cont_pollread", value=False),
             Label("Poll frequency", id="label_poll_update_frq"),
             RadioSet(
                 RadioButton("1 Hz", value=True, id="radio_hz_1"),
@@ -64,7 +64,6 @@ class ActionsView(Vertical):
 
         self._currentRegister = register
         self.refresh(recompose=True)
-        self._update_read_write_btn_status()
 
     def on_unmount(self):
         if self._pushMode and self._currentRegister is not None:
