@@ -4,10 +4,14 @@ from textual.widgets import Button, Label, Static, Input, Button, ListView, List
 from textual.message import Message
 
 from textual import on
+from textual import log
 
 import deviceaccess as da
 
 from chai.RegisterView import RegisterTree
+
+import os
+import sys
 
 
 class DeviceList(ListView):
@@ -19,9 +23,9 @@ class DeviceList(ListView):
         self.extend([ListItem(Label(name)) for name in self._devices.keys()])
 
     def on_list_view_selected(self, selected: ListView.Selected) -> None:
-        dev_string: str = str(selected.item.children[0].renderable)
-        self.app.query_one("#field_device_name").update(dev_string)
-        self.app.query_one("#field_device_identifier").update(self._devices[dev_string])
+        dev_string: str = str(selected.item.children[0].content)
+        self.app.query_one(DeviceView).query_one("#field_device_name").content = dev_string
+        self.app.query_one("#field_device_identifier").content = self._devices[dev_string]
         self.app.query_one(RegisterTree).changeDevice(da.Device(dev_string))
 
     def _parseDmapFile(self, dmapPath: str) -> dict[str, str]:
@@ -65,7 +69,7 @@ class DeviceView(Vertical):
             Vertical(
                 Label("Device status"),
                 Vertical(
-                    Static("No device loaded.", id="label_device_status"),
+                    Label("No device loaded.", id="label_device_status"),
                     Button("Close", id="btn_close_device", disabled=True),
                 ),
             ),
@@ -74,15 +78,15 @@ class DeviceView(Vertical):
                 Vertical(
                     Vertical(
                         Label("Device Name"),
-                        Static("", id="field_device_name")
+                        Label("", id="field_device_name")
                     ),
                     Vertical(
                         Label("Device Identifier"),
-                        Static("", id="field_device_identifier")
+                        Label("", id="field_device_identifier")
                     ),
                     Vertical(
                         Label("dmap file path"),
-                        Input(placeholder="./tests/KlmServer.dmap", id="field_map_file")
+                        Input(placeholder="*.dmap", id="field_map_file")
                     ),
                 ),
             ),

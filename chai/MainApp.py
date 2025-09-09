@@ -3,6 +3,9 @@ from textual.screen import Screen
 from textual.containers import Horizontal, Container
 from textual.widgets import Header, Footer
 
+from textual.css import query
+from textual.widget import Widget
+
 import socket
 
 import deviceaccess as da
@@ -36,9 +39,12 @@ class MainScreen(Screen):
 
 
 class LayoutApp(App):
-    currentDevice: da.Device = None
-    currentRegister: da.GeneralRegisterAccessor = None
-    dmap_file_path: str = None
+    currentDevice: da.Device | None = None
+    currentRegister: da.GeneralRegisterAccessor | None = None
+    dmap_file_path: str | None = None
+
+    def query_one(self, selector: str | type[query.QueryType], expect_type: type[query.QueryType] | None = None) -> query.QueryType | Widget:
+        return self.children[0].query_one(selector, expect_type=expect_type)
 
     def on_mount(self) -> None:
         self.push_screen(MainScreen())
