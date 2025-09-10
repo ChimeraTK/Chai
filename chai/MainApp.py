@@ -135,6 +135,7 @@ class LayoutApp(App):
         self.push_screen("metadata")
         self.push_screen("content")
         self.push_screen("options")
+        self.switch_screen("dmap")
         # self.push_screen(MainScreen()) # uncomment to see the original layout with all views visible
 
     def exit(self) -> None:
