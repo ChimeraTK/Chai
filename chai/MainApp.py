@@ -88,7 +88,6 @@ class LayoutApp(App):
         self.push_screen(MainScreen())
 
     def exit(self) -> None:
-        print("closed")
         if self.currentDevice:
             self.currentDevice.close()
         super().exit()
