@@ -123,13 +123,13 @@ class LayoutApp(App):
         return self.children[0].query_one(selector, expect_type=expect_type)
 
     def on_mount(self) -> None:
-        self.push_screen(DmapScreen())
-        self.push_screen(DeviceScreen())
-        self.push_screen(PropertiesScreen())
-        self.push_screen(RegisterScreen())
-        self.push_screen(MetaDataScreen())
-        self.push_screen(ContentScreen())
-        self.push_screen(OptionsScreen())
+        self.push_screen("dmap")
+        self.push_screen("device")
+        self.push_screen("properties")
+        self.push_screen("register")
+        self.push_screen("metadata")
+        self.push_screen("content")
+        self.push_screen("options")
         # self.push_screen(MainScreen()) # uncomment to see the original layout with all views visible
 
     def exit(self) -> None:
