@@ -5,6 +5,7 @@ from textual.widgets import Header, Footer
 from textual.binding import Binding
 from textual import log
 from textual.widgets import Static
+from textual.reactive import Reactive
 
 from textual.css import query
 from textual.widget import Widget
@@ -115,12 +116,16 @@ class LayoutApp(App):
         Binding(
             key="ctrl+o", key_display="^o", tooltip="Show Options", action="switch_screen('options')", description="opts"),
     ]
-    currentDevice: da.Device | None = None
-    currentRegister: da.GeneralRegisterAccessor | None = None
-    dmap_file_path: str | None = None
 
-    def query_one(self, selector: str | type[query.QueryType], expect_type: type[query.QueryType] | None = None) -> query.QueryType | Widget:
-        return self.children[0].query_one(selector, expect_type=expect_type)
+    dmap_file_path: Reactive[str | None] = Reactive(None)
+
+    device_alias: Reactive[str | None] = Reactive(None)
+    device_cdd: Reactive[str | None] = Reactive(None)
+    currentDevice: da.Device | None = None
+
+    is_open: Reactive[bool] = Reactive(False)
+
+    currentRegister: Reactive[da.GeneralRegisterAccessor | None] = Reactive(None)
 
     def on_mount(self) -> None:
         self.push_screen("dmap")
@@ -136,3 +141,6 @@ class LayoutApp(App):
         if self.currentDevice:
             self.currentDevice.close()
         super().exit()
+
+    def watch_device_alias(self, new_alias: str) -> None:
+        self.currentDevice = da.Device(new_alias)

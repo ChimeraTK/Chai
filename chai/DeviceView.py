@@ -1,7 +1,6 @@
 from textual.app import ComposeResult
 from textual.containers import Vertical
 from textual.widgets import Button, Label, Static, Input, Button, ListView, ListItem, Input
-from textual.message import Message
 
 from textual import on
 from textual import log
@@ -15,18 +14,23 @@ import sys
 
 
 class DeviceList(ListView):
-    _devices: dict[str, str]
+
+    _devices: dict[str, str] = {}
 
     def updateDmapFile(self, filename: str):
         self.clear()
+        if filename is None:
+            return
         self._devices = self._parseDmapFile(filename)
         if self._devices != {}:
             self.extend([ListItem(Label(name)) for name in self._devices.keys()])
             da.setDMapFilePath(filename)
 
     def on_list_view_selected(self, selected: ListView.Selected) -> None:
-        device_alias: str = str(selected.item.children[0].content)
-        self.app.query_one(DeviceView).set_open(True, device_alias, self._devices[device_alias])
+        self.app.is_open = False
+        self.app.device_alias = str(selected.item.children[0].content)
+        self.app.device_cdd = self._devices[self.app.device_alias]
+        self.app.is_open = True
 
     def _parseDmapFile(self, dmapPath: str) -> dict[str, str]:
         devices = {}
@@ -61,10 +65,11 @@ class DeviceList(ListView):
             return {}
         return devices
 
+    def on_mount(self) -> None:
+        self.watch(self.app, "dmap_file_path", lambda path: self.updateDmapFile(path))
+
 
 class DeviceView(Vertical):
-    __is_open: bool = False
-    __device_alias: str | None = None
 
     def compose(self) -> ComposeResult:
         yield Vertical(
@@ -102,32 +107,22 @@ class DeviceView(Vertical):
             self.query_one("#field_map_file").value = sys.argv[1]
             self.query_one("#Btn_load_boards").press()
 
+        self.watch(self.app, "device_alias", lambda alias: self.query_one(
+            "#field_device_name").update(alias or "No device loaded."))
+
+        self.watch(self.app, "device_cdd", lambda cdd: self.query_one(
+            "#field_device_identifier").update(cdd or ""))
+
+        def change_is_open(open: bool) -> None:
+            self.query_one("#label_device_status").update("Device is "+("open" if open else "closed"))
+            self.query_one("#btn_open_close_device").label = "Close" if open else "Open"
+            self.query_one("#btn_open_close_device").disabled = self.app.device_alias is None
+        self.watch(self.app, "is_open", change_is_open)
+
     @on(Button.Pressed, "#Btn_load_boards")
     def _pressed_load_boards(self) -> None:
-        dmap_file_path = self.query_one("#field_map_file").value
-
-        self.query_one(DeviceList).updateDmapFile(dmap_file_path)
-
-        self.SUB_TITLE = dmap_file_path
+        self.app.dmap_file_path = self.query_one("#field_map_file").value
 
     @on(Button.Pressed, "#btn_open_close_device")
-    def _pressed_close_device(self) -> None:
-        self.set_open(not self.__is_open)
-
-    def set_open(self, is_open: bool, device_alias: str | None = None, device_cdd: str | None = None) -> None:
-        self.__is_open = is_open
-        if device_alias is not None:
-            self.__device_alias = device_alias
-            self.query_one("#field_device_name").content = device_alias
-            self.query_one("#field_device_identifier").content = device_cdd
-
-        if is_open:
-            self.query_one("#label_device_status").update("Device is open.")
-            self.query_one("#btn_open_close_device").label = "Close"
-            self.query_one("#btn_open_close_device").disabled = False
-            self.app.query_one(RegisterTree).changeDevice(da.Device(self.__device_alias))
-        else:
-            self.query_one("#label_device_status").update("Device is closed.")
-            self.query_one("#btn_open_close_device").label = "Open"
-            self.query_one("#btn_open_close_device").disabled = False
-            self.app.query_one(RegisterTree).changeDevice(None)
+    def _pressed_open_close_device(self) -> None:
+        self.app.is_open = not self.app.is_open

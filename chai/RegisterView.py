@@ -15,23 +15,18 @@ class RegisterTree(Tree):
 
     _tree: Tree[dict] = Tree("Registers")
     _register_names = []
-    _currentDevice: da.Device | None = None
 
-    def changeDevice(self, device: da.Device | None):
+    def on_mount(self) -> None:
+        self.watch(self.app, "is_open", lambda open: self.on_device_changed(open))
+
+    def on_device_changed(self, open: bool) -> None:
         self._tree.clear()
-
-        if self._currentDevice is not None:
-            self._currentDevice.close()
-
-        self._currentDevice = device
-
-        if device is None:
+        if not open:
             return
 
         register_names = []
-        for reg in self._currentDevice.getRegisterCatalogue():
+        for reg in self.app.currentDevice.getRegisterCatalogue():
             register_names.append(reg.getRegisterName())
-        self._currentDevice.open()
 
         self._register_names = register_names
         for reg_name in register_names:
@@ -68,7 +63,7 @@ class RegisterTree(Tree):
         if currentRegisterPath not in self._register_names:
             return
 
-        rc = self._currentDevice.getRegisterCatalogue()
+        rc = self.app.currentDevice.getRegisterCatalogue()
         registerInfo = rc.getRegister(currentRegisterPath)
 
         self.app.query_one("RegisterInfo").changeRegister(registerInfo)
@@ -85,13 +80,14 @@ class RegisterTree(Tree):
 
         if da.AccessMode.wait_for_new_data in registerInfo.getSupportedAccessModes():
             # we cannot use raw and wait_for_new_data at the same time
-            self._currentDevice.activateAsyncRead()
+            self.app.currentDevice.activateAsyncRead()
             flags = [da.AccessMode.wait_for_new_data]
 
         if registerInfo.getDataDescriptor().fundamentalType() != da.FundamentalType.nodata:
-            register = self._currentDevice.getTwoDRegisterAccessor(np_type, currentRegisterPath, accessModeFlags=flags)
+            register = self.app.currentDevice.getTwoDRegisterAccessor(
+                np_type, currentRegisterPath, accessModeFlags=flags)
         else:
-            register = self._currentDevice.getVoidRegisterAccessor(currentRegisterPath, accessModeFlags=flags)
+            register = self.app.currentDevice.getVoidRegisterAccessor(currentRegisterPath, accessModeFlags=flags)
         self.app.query_one(RegisterValueField).changeRegister(register)
         self.app.query_one(ActionsView).changeRegister(register)
 
