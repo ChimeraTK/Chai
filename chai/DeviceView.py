@@ -20,7 +20,9 @@ class DeviceList(ListView):
     def updateDmapFile(self, filename: str):
         self.clear()
         self._devices = self._parseDmapFile(filename)
-        self.extend([ListItem(Label(name)) for name in self._devices.keys()])
+        if self._devices != {}:
+            self.extend([ListItem(Label(name)) for name in self._devices.keys()])
+            da.setDMapFilePath(filename)
 
     def on_list_view_selected(self, selected: ListView.Selected) -> None:
         device_alias: str = str(selected.item.children[0].content)
@@ -105,7 +107,6 @@ class DeviceView(Vertical):
         dmap_file_path = self.query_one("#field_map_file").value
 
         self.query_one(DeviceList).updateDmapFile(dmap_file_path)
-        da.setDMapFilePath(dmap_file_path)
 
         self.SUB_TITLE = dmap_file_path
 
