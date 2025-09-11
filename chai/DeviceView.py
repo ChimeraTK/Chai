@@ -69,6 +69,27 @@ class DeviceList(ListView):
         self.watch(self.app, "dmap_file_path", lambda path: self.updateDmapFile(path))
 
 
+class DeviceProperties(Vertical):
+    def compose(self) -> ComposeResult:
+        yield Vertical(
+            Label("Device properties"),
+            Vertical(
+                Vertical(
+                    Label("Device Name"),
+                    Label("", id="field_device_name")
+                ),
+                Vertical(
+                    Label("Device Identifier"),
+                    Label("", id="field_device_identifier")
+                ),
+                Vertical(
+                    Label("dmap file path"),
+                    Input(placeholder="*.dmap", id="field_map_file")
+                ),
+            ),
+        )
+
+
 class DeviceView(Vertical):
 
     def compose(self) -> ComposeResult:
@@ -81,30 +102,14 @@ class DeviceView(Vertical):
                     Button("Open", id="btn_open_close_device", disabled=True),
                 ),
             ),
-            Vertical(
-                Label("Device properties"),
-                Vertical(
-                    Vertical(
-                        Label("Device Name"),
-                        Label("", id="field_device_name")
-                    ),
-                    Vertical(
-                        Label("Device Identifier"),
-                        Label("", id="field_device_identifier")
-                    ),
-                    Vertical(
-                        Label("dmap file path"),
-                        Input(placeholder="*.dmap", id="field_map_file")
-                    ),
-                ),
-            ),
+            # DeviceProperties(), # moved to it's own screen
             Button("Load dmap file", id="Btn_load_boards"),
             id="devices",
             classes="main_col")
 
     def on_mount(self) -> None:
         if len(sys.argv) > 1:
-            self.query_one("#field_map_file").value = sys.argv[1]
+            # self.query_one("#field_map_file").value = sys.argv[1] # moved to it's own screen TODO: reconnect
             self.query_one("#Btn_load_boards").press()
 
         self.watch(self.app, "device_alias", lambda alias: self.query_one(
