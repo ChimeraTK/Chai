@@ -49,7 +49,8 @@ class DeviceScreen(Screen):
 class PropertiesScreen(Screen):
 
     def compose(self) -> ComposeResult:
-        yield Static("This is the Properties screen")
+        yield Header()
+        yield DeviceView()
         yield Footer()
 
 
@@ -103,18 +104,20 @@ class LayoutApp(App):
                "register": RegisterScreen, "metadata": MetaDataScreen, "content": ContentScreen, "options": OptionsScreen}
     BINDINGS = [
         # TODO: seperate bindings from displayed text, so that it is not removed when key is bind by another action in some field. Or give priority to the main screen bindings
-        Binding(key="ctrl+m", key_display="^m", tooltip="Load dmap file", action="switch_screen('dmap')", description="dmap"), Binding(
-            key="ctrl+d", key_display="^d", tooltip="Select Device", action="switch_screen('device')", description="dev"),
+        Binding(key="alt+m", priority=True, tooltip="Load dmap file",
+                action="switch_screen('dmap')", description="dmap", group=Binding.Group("dmap")),
         Binding(
-            key="ctrl+i", key_display="^i", tooltip="Show Device Properties", action="switch_screen('properties')", description="devInfo"),
+            key="ctrl+d", priority=True, tooltip="Select Device", action="switch_screen('device')", description="dev", group=Binding.Group("device")),
         Binding(
-            key="ctrl+r", key_display="^r", tooltip="Show Register Tree", action="switch_screen('register')", description="reg"),
+            key="ctrl+i", priority=True, tooltip="Show Device Properties", action="switch_screen('properties')", description="devInfo", group=Binding.Group("properties")),
         Binding(
-            key="ctrl+e", key_display="^e", tooltip="Show Register Meta Data", action="switch_screen('metadata')", description="meta"),
+            key="ctrl+r", priority=True, tooltip="Show Register Tree", action="switch_screen('register')", description="reg", group=Binding.Group("register")),
         Binding(
-            key="ctrl+a", key_display="^a", tooltip="Show Register Content", action="switch_screen('content')", description="content"),
+            key="ctrl+e", priority=True, tooltip="Show Register Meta Data", action="switch_screen('metadata')", description="meta", group=Binding.Group("metadata")),
         Binding(
-            key="ctrl+o", key_display="^o", tooltip="Show Options", action="switch_screen('options')", description="opts"),
+            key="ctrl+a", priority=True, tooltip="Show Register Content", action="switch_screen('content')", description="content", group=Binding.Group("content")),
+        Binding(
+            key="ctrl+o", priority=True, tooltip="Show Options", action="switch_screen('options')", description="opts", group=Binding.Group("options")),
     ]
 
     dmap_file_path: Reactive[str | None] = Reactive(None)
