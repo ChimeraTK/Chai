@@ -5,7 +5,7 @@ from textual.widgets import Button, Label, Static, Input, Button, DataTable, Inp
 from textual.containers import ScrollableContainer
 from textual.validation import Number
 
-from textual import on, events
+from textual import on, events, log
 
 from chai import Utils
 
@@ -91,7 +91,6 @@ class EditValueScreen(ModalScreen):
 
 class RegisterValueField(ScrollableContainer):
 
-    _register: da.TwoDRegisterAccessor | None = None
     _channel: int = 0
     _isRaw: bool = False
 
@@ -100,15 +99,19 @@ class RegisterValueField(ScrollableContainer):
         table.add_columns('Value', 'Raw (dec)', 'Raw (hex)')
         yield table
 
-    def changeRegister(self, register: da.TwoDRegisterAccessor):
-        self._register = register
-        self._isRaw = da.AccessMode.raw in self._register.getAccessModeFlags()
-        self._register.readLatest()
+    def on_mount(self):
+        self.watch(self.app, "currentRegister", lambda accessor: self.on_register_changed(accessor))
+
+    def on_register_changed(self, accessor: da.TwoDRegisterAccessor):
+        if accessor is None:
+            return
+        self._isRaw = da.AccessMode.raw in accessor.getAccessModeFlags()
+        accessor.readLatest()
         self._channel = 0
         self.update()
 
     def changeChannel(self, channel: int):
-        if self._register is None:
+        if self.app.currentRegister is None:
             return
         self._channel = channel
         self.update()
@@ -128,20 +131,23 @@ class RegisterValueField(ScrollableContainer):
         if self._isRaw:
 
             if table.cursor_coordinate.column == 0:  # "Value" (cooked)
-                self._register.setAsCooked(self._channel, row, value)
+                self.app.currentRegister.setAsCooked(self._channel, row, value)
             elif table.cursor_coordinate.column == 1:  # "Raw (dec)"
-                self._register[self._channel][row] = int(value)
+                self.app.currentRegister[self._channel][row] = int(value)
             elif table.cursor_coordinate.column == 2:  # "Raw (hex)"
-                self._register[self._channel][row] = int(value, 16)
+                self.app.currentRegister[self._channel][row] = int(value, 16)
 
             table.update_cell_at(
-                coordinate=[row, 0], value=self._register.getAsCooked(str, self._channel, row), update_width=True)
-            table.update_cell_at(coordinate=[row, 1], value=str(self._register[self._channel][row]), update_width=True)
-            table.update_cell_at(coordinate=[row, 2], value=hex(self._register[self._channel][row]), update_width=True)
+                coordinate=[row, 0], value=self.app.currentRegister.getAsCooked(str, self._channel, row), update_width=True)
+            table.update_cell_at(coordinate=[row, 1], value=str(
+                self.app.currentRegister[self._channel][row]), update_width=True)
+            table.update_cell_at(coordinate=[row, 2], value=hex(
+                self.app.currentRegister[self._channel][row]), update_width=True)
 
         else:
-            self._register[self._channel][row] = int(value)
-            table.update_cell_at(coordinate=[row, 0], value=str(self._register[self._channel][row]), update_width=True)
+            self.app.currentRegister[self._channel][row] = int(value)
+            table.update_cell_at(coordinate=[row, 0], value=str(
+                self.app.currentRegister[self._channel][row]), update_width=True)
 
     def update(self) -> None:
         table = self.query_one(DataTable)
@@ -149,9 +155,9 @@ class RegisterValueField(ScrollableContainer):
 
         if self._isRaw:
             table.add_columns('Value', 'Raw (dec)', 'Raw (hex)')
-            for element, value in enumerate(self._register[self._channel]):
+            for element, value in enumerate(self.app.currentRegister[self._channel]):
                 table.add_row(
-                    self._register.getAsCooked(
+                    self.app.currentRegister.getAsCooked(
                         str,
                         self._channel,
                         element),
@@ -160,14 +166,14 @@ class RegisterValueField(ScrollableContainer):
                     label=str(element))
         else:
             table.add_columns('Value')
-            for element, value in enumerate(self._register[self._channel]):
+            for element, value in enumerate(self.app.currentRegister[self._channel]):
                 table.add_row(value, label=str(element))
 
 
 class RegisterInfo(Grid):
     _nChannels: int = 0
 
-    def compose(slef) -> ComposeResult:
+    def compose(self) -> ComposeResult:
         yield Label("Register Path", id="label_register_path")
         yield Static(" ", id="field_register_path")
         yield Label("Dimension")
@@ -183,32 +189,24 @@ class RegisterInfo(Grid):
         yield Label("Channel:")
         yield Input(value="0", placeholder="0", id="edit_value_dialog_input", type="integer")
 
-    def changeRegister(self, registerInfo) -> None:
-        self.query_one("#field_register_path").update(registerInfo.getRegisterName())
-        self.query_one("#label_nELements").update(str(registerInfo.getNumberOfElements()))
-        self.query_one("#label_nChannels").update(str(registerInfo.getNumberOfChannels()))
-        self._nChannels = registerInfo.getNumberOfChannels()
+    def on_mount(self):
+        self.watch(self.app, "registerInfo", lambda info: self.on_regster_info_changed(info))
 
-        wait_for_new_data_label_text = "no"
-        cont_poll_text = "Continous Poll"
-        freq_text = "Poll frequency"
+    def on_regster_info_changed(self, info: da.pb.RegisterInfo):
+        if info is None:
+            return
+        self.query_one("#field_register_path").update(info.getRegisterName())
+        self.query_one("#label_nELements").update(str(info.getNumberOfElements()))
+        self.query_one("#label_nChannels").update(str(info.getNumberOfChannels()))
+        self._nChannels = info.getNumberOfChannels()
 
-        if da.AccessMode.wait_for_new_data in registerInfo.getSupportedAccessModes():
-            wait_for_new_data_label_text = "yes"
-            cont_poll_text = "Continous Read"
-            freq_text = "Update frequency"
-
-        self.app.query_one("#label_poll_update_frq").update(freq_text)
-        self.app.query_one("#label_ctn_pollread").update(cont_poll_text)
-        self.query_one("#label_wait_for_new_data").update(wait_for_new_data_label_text)
-
-        dd = registerInfo.getDataDescriptor()
+        dd = info.getDataDescriptor()
         self.query_one("#label_data_type").update(Utils.build_data_type_string(dd))
-        if registerInfo.getNumberOfDimensions() == 0:
+        if info.getNumberOfDimensions() == 0:
             self.query_one("#label_dimensions").update("Scalar")
-        elif registerInfo.getNumberOfDimensions() == 1:
+        elif info.getNumberOfDimensions() == 1:
             self.query_one("#label_dimensions").update("1D")
-        elif registerInfo.getNumberOfDimensions() == 2:
+        elif info.getNumberOfDimensions() == 2:
             self.query_one("#label_dimensions").update("2D")
 
     def on_input_submitted(self, change: Input.Submitted) -> None:
