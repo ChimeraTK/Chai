@@ -65,6 +65,19 @@ class ActionsView(Vertical):
         self._currentRegister = register
         self.refresh(recompose=True)
 
+        wait_for_new_data_label_text = "no"
+        cont_poll_text = "Continous Poll"
+        freq_text = "Poll frequency"
+
+        if da.AccessMode.wait_for_new_data in info.getSupportedAccessModes():
+            wait_for_new_data_label_text = "yes"
+            cont_poll_text = "Continous Read"
+            freq_text = "Update frequency"
+
+        self.app.query_one("#label_poll_update_frq").update(freq_text)
+        self.app.query_one("#label_ctn_pollread").update(cont_poll_text)
+        self.query_one("#label_wait_for_new_data").update(wait_for_new_data_label_text)
+
     def on_unmount(self):
         if self._pushMode and self._currentRegister is not None:
             self._currentRegister.interrupt()
