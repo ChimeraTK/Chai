@@ -130,6 +130,7 @@ class LayoutApp(App):
 
     currentRegister: Reactive[da.GeneralRegisterAccessor | None] = Reactive(None)
     registerInfo: Reactive[da.pb.RegisterInfo | None] = Reactive(None)
+    register_value_changed: Reactive[int] = Reactive(int)  # value does not matter, change informs about read operation
 
     def on_mount(self) -> None:
         self.push_screen("dmap")
