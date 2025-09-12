@@ -82,12 +82,15 @@ class DeviceProperties(Vertical):
                     Label("Device Identifier"),
                     Label("", id="field_device_identifier")
                 ),
-                Vertical(
-                    Label("dmap file path"),
-                    Input(placeholder="*.dmap", id="field_map_file")
-                ),
             ),
         )
+
+    def on_mount(self) -> None:
+        self.watch(self.app, "device_alias", lambda alias: self.query_one(
+            "#field_device_name").update(alias or "No device loaded."))
+
+        self.watch(self.app, "device_cdd", lambda cdd: self.query_one(
+            "#field_device_identifier").update(cdd or ""))
 
 
 class DeviceView(Vertical):
@@ -102,26 +105,25 @@ class DeviceView(Vertical):
                     Button("Open", id="btn_open_close_device", disabled=True),
                 ),
             ),
+            Vertical(
+                Label("dmap file path"),
+                Input(placeholder="*.dmap", id="field_map_file")
+            ),
             # DeviceProperties(), # moved to it's own screen
             Button("Load dmap file", id="Btn_load_boards"),
             id="devices",
             classes="main_col")
 
     def on_mount(self) -> None:
+        self.query_one("#field_map_file").value = sys.argv[1]
         if len(sys.argv) > 1:
-            # self.query_one("#field_map_file").value = sys.argv[1] # moved to it's own screen TODO: reconnect
             self.query_one("#Btn_load_boards").press()
-
-        self.watch(self.app, "device_alias", lambda alias: self.query_one(
-            "#field_device_name").update(alias or "No device loaded."))
-
-        self.watch(self.app, "device_cdd", lambda cdd: self.query_one(
-            "#field_device_identifier").update(cdd or ""))
 
         def change_is_open(open: bool) -> None:
             self.query_one("#label_device_status").update("Device is "+("open" if open else "closed"))
             self.query_one("#btn_open_close_device").label = "Close" if open else "Open"
             self.query_one("#btn_open_close_device").disabled = self.app.device_alias is None
+
         self.watch(self.app, "is_open", change_is_open)
 
     @on(Button.Pressed, "#Btn_load_boards")

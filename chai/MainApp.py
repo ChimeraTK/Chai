@@ -14,7 +14,7 @@ import socket
 
 import deviceaccess as da
 
-from chai.DeviceView import DeviceView
+from chai.DeviceView import DeviceView, DeviceProperties
 from chai.RegisterView import RegisterView
 from chai.DataView import DataView
 from chai.ActionsView import ActionsView
@@ -50,7 +50,7 @@ class PropertiesScreen(Screen):
 
     def compose(self) -> ComposeResult:
         yield Header()
-        yield DeviceView()
+        yield DeviceProperties()
         yield Footer()
 
 
