@@ -102,6 +102,8 @@ class RegisterValueField(ScrollableContainer):
     def on_mount(self):
         self.watch(self.app, "currentRegister", lambda accessor: self.on_register_changed(accessor))
 
+        self.watch(self.app, "register_value_changed", lambda x: self.update())
+
     def on_register_changed(self, accessor: da.TwoDRegisterAccessor):
         if accessor is None:
             return
@@ -152,6 +154,9 @@ class RegisterValueField(ScrollableContainer):
     def update(self) -> None:
         table = self.query_one(DataTable)
         table.clear(True)
+
+        if self.app.currentRegister is None:
+            return
 
         if self._isRaw:
             table.add_columns('Value', 'Raw (dec)', 'Raw (hex)')
