@@ -1,0 +1,4 @@
+#@LOAD_LIB /home/cwillner/software/install-debug/lib/libChimeraTK-DeviceAccess-DoocsBackend.so
+# a comment
+anotherDevice    (sharedMemoryDummy?map=KlmDummy.map)
+anotherTest_card (sharedMemoryDummy?map=test_card.map)
