@@ -129,6 +129,7 @@ class LayoutApp(App):
     is_open: Reactive[bool] = Reactive(False)
 
     currentRegister: Reactive[da.GeneralRegisterAccessor | None] = Reactive(None)
+    registerInfo: Reactive[da.pb.RegisterInfo | None] = Reactive(None)
 
     def on_mount(self) -> None:
         self.push_screen("dmap")
@@ -148,3 +149,11 @@ class LayoutApp(App):
 
     def watch_device_alias(self, new_alias: str) -> None:
         self.currentDevice = da.Device(new_alias)
+
+    def watch_is_open(self, open: bool) -> None:
+        if self.currentDevice is None:
+            return
+        if open:
+            self.currentDevice.open()
+        else:
+            self.currentDevice.close()
