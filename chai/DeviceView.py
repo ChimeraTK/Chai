@@ -153,9 +153,6 @@ class DeviceView(Vertical):
             classes="main_col")
 
     def on_mount(self) -> None:
-        self.query_one("#field_map_file", Input).value = sys.argv[1]
-        if len(sys.argv) > 1:
-            self.query_one("#Btn_load_boards", Button).press()
 
         def change_is_open(open: bool) -> None:
             self.query_one("#label_device_status", Label).update("Device is "+("open" if open else "closed"))
@@ -163,10 +160,6 @@ class DeviceView(Vertical):
             self.query_one("#btn_open_close_device", Button).disabled = self.app.device_alias is None
 
         self.watch(self.app, "is_open", change_is_open)
-
-    @on(Button.Pressed, "#Btn_load_boards")
-    def _pressed_load_boards(self) -> None:
-        self.app.dmap_file_path = self.query_one("#field_map_file", Input).value
 
     @on(Button.Pressed, "#btn_open_close_device")
     def _pressed_open_close_device(self) -> None:
