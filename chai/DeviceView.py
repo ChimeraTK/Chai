@@ -59,19 +59,13 @@ class DeviceList(ListView):
                 splitline = line.split(maxsplit=1)
                 if len(splitline) != 2:
                     self.notify(f"Could not parse DMAP file {dmapPath}, parsing error in line {lineCounter}",
-                                title="Parsing error",
-                                severity="warning",
-                                )
+                                title="Parsing error", severity="warning")
                     return {}
 
                 alias_name, cdd = splitline
-                devices[alias_name] = cdd
+                devices[alias_name.strip()] = cdd.strip()
         except FileNotFoundError:
-            self.notify(
-                f"Could not open file: {dmapPath}",
-                title="File not found",
-                severity="warning",
-            )
+            self.notify(f"Could not open file: {dmapPath}", title="File not found", severity="warning")
             return {}
         return devices
 
