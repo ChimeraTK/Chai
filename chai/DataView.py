@@ -1,9 +1,13 @@
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from MainApp import LayoutApp
 from textual.app import ComposeResult
 from textual.screen import ModalScreen
 from textual.containers import Horizontal, Vertical, Container, Grid
 from textual.widgets import Button, Label, Static, Input, Button, DataTable, Input
 from textual.containers import ScrollableContainer
 from textual.validation import Number
+from textual.coordinate import Coordinate
 
 from textual import on, events, log
 
@@ -15,7 +19,6 @@ import deviceaccess as da
 class RegisterValueRow(Horizontal):
 
     channel = 0
-    offset = 0
 
     raw = Input()
     cooked = Input()
@@ -27,7 +30,7 @@ class RegisterValueRow(Horizontal):
         super().__init__()
 
     def compose(self):
-        yield Container(Input(placeholder=self.raw))
+        yield Container(Input(placeholder=str(self.raw)))
         yield Container(Input())
         yield Container(Input())
 
@@ -64,7 +67,7 @@ class EditValueScreen(ModalScreen):
 
         yield Grid(
             Label("Edit value", id="edit_value_dialog_title"),
-            Input(value=str(value), placeholder="0", id="edit_value_dialog_input", validate_on='changed',
+            Input(value=str(value), placeholder="0", id="edit_value_dialog_input", validate_on=["changed"],
                   restrict=validPattern),
             Button("Ok", variant="primary", id="edit_value_dialog_ok"),
             Button("Cancel", id="edit_value_dialog_cancel"),
@@ -93,6 +96,8 @@ class RegisterValueField(ScrollableContainer):
 
     _channel: int = 0
     _isRaw: bool = False
+    if TYPE_CHECKING:
+        app: LayoutApp
 
     def compose(self) -> ComposeResult:
         table = DataTable()
@@ -130,6 +135,9 @@ class RegisterValueField(ScrollableContainer):
         table = self.query_one(DataTable)
         row = table.cursor_coordinate.row
 
+        if not isinstance(self.app.currentRegister, da.TwoDRegisterAccessor):
+            return
+
         if self._isRaw:
 
             if table.cursor_coordinate.column == 0:  # "Value" (cooked)
@@ -140,22 +148,22 @@ class RegisterValueField(ScrollableContainer):
                 self.app.currentRegister[self._channel][row] = int(value, 16)
 
             table.update_cell_at(
-                coordinate=[row, 0], value=self.app.currentRegister.getAsCooked(str, self._channel, row), update_width=True)
-            table.update_cell_at(coordinate=[row, 1], value=str(
+                coordinate=Coordinate(row, 0), value=self.app.currentRegister.getAsCooked(str, self._channel, row), update_width=True)
+            table.update_cell_at(coordinate=Coordinate(row, 1), value=str(
                 self.app.currentRegister[self._channel][row]), update_width=True)
-            table.update_cell_at(coordinate=[row, 2], value=hex(
+            table.update_cell_at(coordinate=Coordinate(row, 2), value=hex(
                 self.app.currentRegister[self._channel][row]), update_width=True)
 
         else:
             self.app.currentRegister[self._channel][row] = int(value)
-            table.update_cell_at(coordinate=[row, 0], value=str(
+            table.update_cell_at(coordinate=Coordinate(row, 0), value=str(
                 self.app.currentRegister[self._channel][row]), update_width=True)
 
     def update(self) -> None:
         table = self.query_one(DataTable)
         table.clear(True)
 
-        if self.app.currentRegister is None:
+        if not isinstance(self.app.currentRegister, da.TwoDRegisterAccessor):
             return
 
         if self._isRaw:
@@ -200,19 +208,19 @@ class RegisterInfo(Grid):
     def on_regster_info_changed(self, info: da.pb.RegisterInfo):
         if info is None:
             return
-        self.query_one("#field_register_path").update(info.getRegisterName())
-        self.query_one("#label_nELements").update(str(info.getNumberOfElements()))
-        self.query_one("#label_nChannels").update(str(info.getNumberOfChannels()))
+        self.query_one("#field_register_path", Static).update(info.getRegisterName())
+        self.query_one("#label_nELements", Static).update(str(info.getNumberOfElements()))
+        self.query_one("#label_nChannels", Static).update(str(info.getNumberOfChannels()))
         self._nChannels = info.getNumberOfChannels()
 
         dd = info.getDataDescriptor()
-        self.query_one("#label_data_type").update(Utils.build_data_type_string(dd))
+        self.query_one("#label_data_type", Static).update(Utils.build_data_type_string(dd))
         if info.getNumberOfDimensions() == 0:
-            self.query_one("#label_dimensions").update("Scalar")
+            self.query_one("#label_dimensions", Static).update("Scalar")
         elif info.getNumberOfDimensions() == 1:
-            self.query_one("#label_dimensions").update("1D")
+            self.query_one("#label_dimensions", Static).update("1D")
         elif info.getNumberOfDimensions() == 2:
-            self.query_one("#label_dimensions").update("2D")
+            self.query_one("#label_dimensions", Static).update("2D")
 
     def on_input_submitted(self, change: Input.Submitted) -> None:
         if change.value.isdigit():

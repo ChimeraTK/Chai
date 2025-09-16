@@ -1,3 +1,6 @@
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from MainApp import LayoutApp
 from textual.app import ComposeResult
 from textual.containers import Vertical
 from textual.widgets import Button, Label, Static, Checkbox, Button, RadioSet, RadioButton
@@ -19,6 +22,8 @@ class ActionsView(Vertical):
     _pushMode: bool
     _last_update_time = None
     _avg_update_interval_list: deque = deque(maxlen=10)
+    if TYPE_CHECKING:
+        app: LayoutApp
 
     def compose(self) -> ComposeResult:
         self._pushMode = self.app.currentRegister is not None and    \
@@ -74,18 +79,22 @@ class ActionsView(Vertical):
 
     @on(Button.Pressed, "#btn_read")
     def _pressed_read(self) -> None:
+        if self.app.currentRegister is None:
+            return
         self.app.currentRegister.readLatest()
         self.app.register_value_changed += 1  # value does not matter, change to inform subscribers about read
-        self.query_one("#last_update_time").update(str(datetime.now()))
+        self.query_one("#last_update_time", Label).update(str(datetime.now()))
 
     @on(Button.Pressed, "#btn_write")
     def _pressed_write(self) -> None:
+        if self.app.currentRegister is None:
+            return
         self.app.currentRegister.write()
-        if self.query_one("#checkbox_read_after_write").value:
-            self.pressed_read()
+        if self.query_one("#checkbox_read_after_write", Checkbox).value:
+            self._pressed_read()
 
     def _update_read_write_btn_status(self):
-        pollread: Checkbox = self.query_one("#checkbox_cont_pollread")
+        pollread = self.query_one("#checkbox_cont_pollread", Checkbox)
         if self.app.currentRegister is not None:
             self.query_one("#btn_read").disabled = (pollread.value or not self.app.currentRegister.isReadable())
             self.query_one("#btn_write").disabled = (pollread.value or not self.app.currentRegister.isWriteable())
@@ -93,22 +102,23 @@ class ActionsView(Vertical):
     @work(exclusive=True, thread=True)
     def _update_push_loop(self) -> None:
         worker = get_current_worker()
-        while not worker.is_cancelled:
+        currentRegister = self.app.currentRegister
+        while not worker.is_cancelled and currentRegister is not None:
             try:
-                self.app.currentRegister.read()
+                currentRegister.read()
             except RuntimeError:
                 return
             self.app.call_from_thread(self._update_push_single)
 
     def _update_push_single(self) -> None:
         now = datetime.now()
-        self.query_one("#last_update_time").update(str(now))
+        self.query_one("#last_update_time", Label).update(str(now))
         self.app.query_one(RegisterValueField).update()
 
         if self._last_update_time is not None:
             self._avg_update_interval_list.append((now - self._last_update_time).total_seconds())
             avg = sum(self._avg_update_interval_list) / len(self._avg_update_interval_list)
-            self.query_one("#update_interval").update(f"{round(avg * 1000)} ms")
+            self.query_one("#update_interval", Label).update(f"{round(avg * 1000)} ms")
 
         self._last_update_time = now
 
@@ -118,6 +128,7 @@ class ActionsView(Vertical):
         if not self._pushMode:
             self.query_one("#radio_set_freq").disabled = not changed.control.value
             self._update_timer_hz()
+            assert self._update_timer is not None
             if changed.control.value:
                 self._update_timer.resume()
             else:
@@ -126,7 +137,8 @@ class ActionsView(Vertical):
             if changed.control.value:
                 self._update_push_loop()
             else:
-                self.app.currentRegister.interrupt()
+                if self.app.currentRegister is not None:
+                    self.app.currentRegister.interrupt()
 
     def on_radio_set_changed(self, changed: RadioSet.Changed) -> None:
         self._update_timer_hz()
@@ -135,6 +147,8 @@ class ActionsView(Vertical):
         set = self.query_one("#radio_set_freq", RadioSet)
         if self._update_timer is not None:
             self._update_timer.stop()
+        assert set.pressed_button is not None
+        assert set.pressed_button.id is not None
         assert set.pressed_button.id.startswith("radio_hz_")
         hz = int(set.pressed_button.id[9:])
         self._update_timer = self.set_interval(1 / hz, self._pressed_read, pause=pause)

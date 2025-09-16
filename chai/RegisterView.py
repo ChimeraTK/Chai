@@ -1,3 +1,6 @@
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from MainApp import LayoutApp
 from textual.app import ComposeResult
 from textual.containers import Horizontal, Vertical
 from textual.widgets import Button, Label, Tree, Input, Checkbox, Button, Input
@@ -15,6 +18,8 @@ class RegisterTree(Tree):
 
     _tree: Tree[dict] = Tree("Registers")
     _register_names = []
+    if TYPE_CHECKING:
+        app: LayoutApp
 
     def on_mount(self) -> None:
         self.watch(self.app, "is_open", lambda open: self.on_device_changed(open))
@@ -22,7 +27,7 @@ class RegisterTree(Tree):
 
     def on_device_changed(self, open: bool) -> None:
         self._tree.clear()
-        if not open:
+        if not open or self.app.currentDevice is None:
             return
 
         register_names = []
@@ -64,11 +69,14 @@ class RegisterTree(Tree):
         if currentRegisterPath not in self._register_names:
             return
 
+        if self.app.currentDevice is None:
+            return
+
         rc = self.app.currentDevice.getRegisterCatalogue()
         self.app.registerInfo = rc.getRegister(currentRegisterPath)
 
     def on_regster_info_changed(self, info: da.pb.RegisterInfo):
-        if info is None:
+        if info is None or self.app.currentDevice is None:
             return
         dd = info.getDataDescriptor()
         if dd.rawDataType().getAsString() != "unknown" and dd.rawDataType().getAsString() != "none":
