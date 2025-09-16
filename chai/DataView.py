@@ -91,13 +91,21 @@ class RegisterValueField(ScrollableContainer):
         if register is not None:
             self._isRaw = da.AccessMode.raw in register.accessor.getAccessModeFlags()
             if self.app.isOpen:
-                register.accessor.readLatest()
+                try:
+                    register.accessor.readLatest()
+                except RuntimeError as e:
+                    self.notify(str(e), title="Error while reading from device", severity="warning")
+                    self.app.isOpen = False
         self.app.channel = 0
         self.update()
 
     def on_open_close(self, open: bool):
         if open and self.app.register is not None:
-            self.app.register.accessor.readLatest()
+            try:
+                self.app.register.accessor.readLatest()
+            except RuntimeError as e:
+                self.notify(str(e), title="Error while reading from device", severity="warning")
+                self.app.isOpen = False
         self.update()
 
     def on_key(self, event: events.Key) -> None:
