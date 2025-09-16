@@ -74,5 +74,5 @@ DmapView InputWithEnterAction {
     }
 
 FooterKey.selected {
-    background: $block-hover-background;
+    text-style: bold reverse;
 }
