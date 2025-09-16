@@ -228,12 +228,18 @@ class LayoutApp(App):
         # self.push_screen(MainScreen()) # uncomment to see the original layout with all views visible
 
     def watch_deviceAlias(self, new_alias: str) -> None:
-        self.currentDevice = da.Device(new_alias)
+        try:
+            self.currentDevice = da.Device(new_alias)
+        except RuntimeError as e:
+            self.notify(str(e), title=f"Error while creating device '{new_alias}'", severity="warning")
 
     def watch_isOpen(self, open: bool) -> None:
         if self.currentDevice is None:
             return
         if open:
-            self.currentDevice.open()
+            try:
+                self.currentDevice.open()
+            except RuntimeError as e:
+                self.notify(str(e), title=f"Error while opening device '{self.deviceAlias}'", severity="warning")
         else:
             self.currentDevice.close()

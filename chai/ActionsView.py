@@ -95,7 +95,12 @@ class ActionsView(Vertical):
     def _pressed_read(self) -> None:
         if self.app.register is None or not self.app.isOpen:
             return
-        self.app.register.accessor.readLatest()
+        try:
+            self.app.register.accessor.readLatest()
+        except RuntimeError as e:
+            self.notify(str(e), title="Error while reading from device", severity="warning")
+            self.app.isOpen = False
+
         self.app.registerValueChanged += 1  # value does not matter, change to inform subscribers about read
         self.query_one("#last_update_time", Label).update(str(datetime.now()))
 
@@ -103,7 +108,11 @@ class ActionsView(Vertical):
     def _pressed_write(self) -> None:
         if self.app.register is None or not self.app.isOpen:
             return
-        self.app.register.accessor.write()
+        try:
+            self.app.register.accessor.write()
+        except RuntimeError as e:
+            self.notify(str(e), title="Error while writing to device", severity="warning")
+            self.app.isOpen = False
         if self.query_one("#checkbox_read_after_write", Checkbox).value:
             self._pressed_read()
 
@@ -120,14 +129,19 @@ class ActionsView(Vertical):
         while not worker.is_cancelled and register is not None:
             try:
                 register.accessor.read()
-            except RuntimeError:
-                return
+            except RuntimeError as e:
+                self.app.call_from_thread(self._update_push_single, e)
             self.app.call_from_thread(self._update_push_single)
 
-    def _update_push_single(self) -> None:
+    def _update_push_single(self, exception: RuntimeError | None = None) -> None:
+        if exception is not None:
+            self.notify(str(exception), title="Error while reading from device", severity="warning")
+            self.app.isOpen = False
+            return
+
         now = datetime.now()
         self.query_one("#last_update_time", Label).update(str(now))
-        self.app.query_one(RegisterValueField).update()
+        self.app.registerValueChanged += 1  # value does not matter, change to inform subscribers about read
 
         if self._last_update_time is not None:
             self._avg_update_interval_list.append((now - self._last_update_time).total_seconds())
