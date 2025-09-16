@@ -2,8 +2,8 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from MainApp import LayoutApp
 from textual.app import ComposeResult
-from textual.containers import Vertical
-from textual.widgets import Button, Label, Static, Input, Button, ListView, ListItem, Input
+from textual.containers import Vertical, Horizontal
+from textual.widgets import Button, Label, Static, Input, Button, ListView, ListItem, Input, DirectoryTree
 
 from textual import on
 from textual import log
@@ -90,14 +90,49 @@ class DeviceProperties(Vertical):
                     Label("", id="field_device_identifier")
                 ),
             ),
-        )
+            classes="main_col")
 
     def on_mount(self) -> None:
         self.watch(self.app, "device_alias", lambda alias: self.query_one(
             "#field_device_name", Label).update(alias or "No device loaded."))
 
         self.watch(self.app, "device_cdd", lambda cdd: self.query_one(
-            "#field_device_identifier", Label).update(cdd or ""))
+            "#field_device_identifier").update(cdd or ""))
+
+
+class DmapView(Vertical):
+    def compose(self) -> ComposeResult:
+        yield Vertical(
+            Label("Load dmap file from:"),
+            Input(id="field_root_dir", value=os.getcwd(), placeholder="Root directory"),
+            DirectoryTree("./", id="directory_tree"),  # TODO: maybe add show non dmap, open on double click
+            Label("or enter dmap file path:"),
+            Input(placeholder="*.dmap", id="field_map_file"),
+            Horizontal(
+                Button("Load dmap file", id="Btn_load_boards"),
+                Label("\n|"),
+                Button("Reload tree", id="Btn_refresh_dir"),
+            ),
+            id="devices",
+            classes="main_col")
+
+    def on_mount(self) -> None:
+        self.query_one("#directory_tree").guide_depth = 2
+        self.query_one("#field_map_file").value = sys.argv[1]
+        if len(sys.argv) > 1:
+            self.query_one("#Btn_load_boards").press()
+
+    @on(Button.Pressed, "#Btn_load_boards")
+    def _pressed_load_boards(self) -> None:
+        self.app.dmap_file_path = self.query_one("#field_map_file").value
+        # switch view
+        # TODO: if valid dmap path from terminal start was supplied, change to device view as start
+        self.app.switch_screen("device")
+
+    @on(DirectoryTree.FileSelected, "#directory_tree")
+    def _file_selected(self, event: DirectoryTree.FileSelected) -> None:
+        if event.path.name.endswith(".dmap"):
+            self.query_one("#field_map_file").value = event.path.as_posix()
 
 
 class DeviceView(Vertical):
@@ -114,12 +149,6 @@ class DeviceView(Vertical):
                     Button("Open", id="btn_open_close_device", disabled=True),
                 ),
             ),
-            Vertical(
-                Label("dmap file path"),
-                Input(placeholder="*.dmap", id="field_map_file")
-            ),
-            # DeviceProperties(), # moved to it's own screen
-            Button("Load dmap file", id="Btn_load_boards"),
             id="devices",
             classes="main_col")
 
