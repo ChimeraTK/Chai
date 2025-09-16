@@ -6,7 +6,7 @@ from textual.worker import Worker
 from textual.app import ComposeResult
 from textual.containers import Vertical, Horizontal, Container
 from textual.widgets import Button, Label, Static, Input, Button, ListView, ListItem, Input, DirectoryTree, Checkbox
-
+from textual.events import Click, MouseEvent
 from textual import on, log
 
 import deviceaccess as da
@@ -175,7 +175,7 @@ class DmapView(Vertical):
 
     @on(DirectoryTree.FileSelected, "#directory_tree")
     def _file_selected(self, event: DirectoryTree.FileSelected) -> None:
-        if event.path.name.endswith(".dmap"):
+        if event.path.is_file():
             self.query_one("#field_map_file", Input).value = str(
                 event.path.relative_to(self.query_one("#field_root_dir", Input).value))
 
@@ -200,6 +200,18 @@ class DmapView(Vertical):
     def _checkbox_only_dmap_changed(self, event: Checkbox.Changed) -> None:
         self.query_one("#directory_tree", DmapTree).onlyDmap = event.value
         self.query_one("#directory_tree", DmapTree).reload()
+
+    @on(Click, "#directory_tree")
+    def _on_double_click(self, event: Click) -> None:
+        if event.chain >= 2:  # double click
+            tree = self.query_one("#directory_tree", DmapTree)
+            selectedNode = tree.cursor_node
+            if selectedNode is not None:
+                data = selectedNode.data
+                if data is not None and data.path.is_file():
+                    self.query_one("#field_map_file", Input).value = str(
+                        data.path.relative_to(self.query_one("#field_root_dir", Input).value))
+                    self._pressed_load_boards()
 
 
 class DeviceView(Vertical):
