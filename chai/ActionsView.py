@@ -30,6 +30,10 @@ class ActionsView(Vertical):
         self._pushMode = self.app.register is not None and    \
             da.AccessMode.wait_for_new_data in self.app.register.accessor.getAccessModeFlags()
 
+        register = self.app.register
+        disableRead = True if register is None or not self.app.isOpen else not register.accessor.isReadable()
+        disableWrite = True if register is None or not self.app.isOpen else not register.accessor.isWriteable()
+
         self.add_class("main_col")
 
         yield Label("Options")
@@ -39,12 +43,12 @@ class ActionsView(Vertical):
         )
         yield Label("Operations")
         yield Vertical(
-            Button("Read", disabled=True if self.app.register is None else not self.app.register.accessor.isReadable(), id="btn_read"),
-            Button("Write", disabled=True if self.app.register is None else not self.app.register.accessor.isWriteable(), id="btn_write"),
+            Button("Read", disabled=disableRead, id="btn_read"),
+            Button("Write", disabled=disableWrite, id="btn_write"),
         )
         yield Label("Continous Read" if self._pushMode else "Continous Poll", id="label_ctn_pollread")
         yield Vertical(
-            Checkbox("enabled", id="checkbox_cont_pollread", value=False),
+            Checkbox("enabled", id="checkbox_cont_pollread", value=False, disabled=disableRead),
             Label("Poll frequency", id="label_poll_update_frq"),
             RadioSet(
                 RadioButton("1 Hz", value=True, id="radio_hz_1"),
@@ -59,18 +63,27 @@ class ActionsView(Vertical):
         )
 
     def on_mount(self) -> None:
-        self.watch(self.app, "register", lambda register: self.on_register_changed(register))
+        self.watch(self.app, "register", lambda old_register,
+                   new_register: self.on_register_changed(old_register, new_register))
+        self.watch(self.app, "isOpen", lambda open: self.on_open_close(open))
 
-    def on_register_changed(self, register: AccessorHolder):
-        if register is None:
-            return
-
+    def on_register_changed(self, old_register: AccessorHolder, new_register: AccessorHolder):
         if self._update_timer is not None:
             self._update_timer.stop()
             self._update_timer = None
 
-        if self._pushMode and register is not None:
-            register.accessor.interrupt()
+        if self._pushMode:
+            old_register.accessor.interrupt()
+
+        self.refresh(recompose=True)
+
+    def on_open_close(self, open: bool):
+        if self._update_timer is not None:
+            self._update_timer.stop()
+            self._update_timer = None
+
+        if self._pushMode and self.app.register is not None:
+            self.app.register.accessor.interrupt()
 
         self.refresh(recompose=True)
 
@@ -80,7 +93,7 @@ class ActionsView(Vertical):
 
     @on(Button.Pressed, "#btn_read")
     def _pressed_read(self) -> None:
-        if self.app.register is None:
+        if self.app.register is None or not self.app.isOpen:
             return
         self.app.register.accessor.readLatest()
         self.app.registerValueChanged += 1  # value does not matter, change to inform subscribers about read
@@ -88,7 +101,7 @@ class ActionsView(Vertical):
 
     @on(Button.Pressed, "#btn_write")
     def _pressed_write(self) -> None:
-        if self.app.register is None:
+        if self.app.register is None or not self.app.isOpen:
             return
         self.app.register.accessor.write()
         if self.query_one("#checkbox_read_after_write", Checkbox).value:

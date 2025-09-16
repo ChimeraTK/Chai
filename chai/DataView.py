@@ -107,15 +107,21 @@ class RegisterValueField(ScrollableContainer):
 
     def on_mount(self):
         self.watch(self.app, "register", lambda register: self.on_register_changed(register))
+        self.watch(self.app, "isOpen", lambda open: self.on_open_close(open))
 
         self.watch(self.app, "registerValueChanged", lambda x: self.update())
 
     def on_register_changed(self, register: AccessorHolder):
-        if register is None or not self.app.isOpen:
-            return
-        self._isRaw = da.AccessMode.raw in register.accessor.getAccessModeFlags()
-        register.accessor.readLatest()
+        if register is not None:
+            self._isRaw = da.AccessMode.raw in register.accessor.getAccessModeFlags()
+            if self.app.isOpen:
+                register.accessor.readLatest()
         self._channel = 0
+        self.update()
+
+    def on_open_close(self, open: bool):
+        if open and self.app.register is not None:
+            self.app.register.accessor.readLatest()
         self.update()
 
     def changeChannel(self, channel: int):
