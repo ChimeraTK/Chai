@@ -1,3 +1,6 @@
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from MainApp import LayoutApp
 from textual.app import ComposeResult
 from textual.containers import Vertical
 from textual.widgets import Button, Label, Static, Input, Button, ListView, ListItem, Input
@@ -16,6 +19,8 @@ import sys
 class DeviceList(ListView):
 
     _devices: dict[str, str] = {}
+    if TYPE_CHECKING:
+        app: LayoutApp
 
     def updateDmapFile(self, filename: str):
         self.clear()
@@ -27,8 +32,10 @@ class DeviceList(ListView):
             da.setDMapFilePath(filename)
 
     def on_list_view_selected(self, selected: ListView.Selected) -> None:
+        itemLabel = selected.item.children[0]
+        assert isinstance(itemLabel, Label)
         self.app.is_open = False
-        self.app.device_alias = str(selected.item.children[0].content)
+        self.app.device_alias = str(itemLabel.content)
         self.app.device_cdd = self._devices[self.app.device_alias]
         self.app.is_open = True
 
@@ -87,13 +94,15 @@ class DeviceProperties(Vertical):
 
     def on_mount(self) -> None:
         self.watch(self.app, "device_alias", lambda alias: self.query_one(
-            "#field_device_name").update(alias or "No device loaded."))
+            "#field_device_name", Label).update(alias or "No device loaded."))
 
         self.watch(self.app, "device_cdd", lambda cdd: self.query_one(
-            "#field_device_identifier").update(cdd or ""))
+            "#field_device_identifier", Label).update(cdd or ""))
 
 
 class DeviceView(Vertical):
+    if TYPE_CHECKING:
+        app: LayoutApp
 
     def compose(self) -> ComposeResult:
         yield Vertical(
@@ -115,20 +124,20 @@ class DeviceView(Vertical):
             classes="main_col")
 
     def on_mount(self) -> None:
-        self.query_one("#field_map_file").value = sys.argv[1]
+        self.query_one("#field_map_file", Input).value = sys.argv[1]
         if len(sys.argv) > 1:
-            self.query_one("#Btn_load_boards").press()
+            self.query_one("#Btn_load_boards", Button).press()
 
         def change_is_open(open: bool) -> None:
-            self.query_one("#label_device_status").update("Device is "+("open" if open else "closed"))
-            self.query_one("#btn_open_close_device").label = "Close" if open else "Open"
-            self.query_one("#btn_open_close_device").disabled = self.app.device_alias is None
+            self.query_one("#label_device_status", Label).update("Device is "+("open" if open else "closed"))
+            self.query_one("#btn_open_close_device", Button).label = "Close" if open else "Open"
+            self.query_one("#btn_open_close_device", Button).disabled = self.app.device_alias is None
 
         self.watch(self.app, "is_open", change_is_open)
 
     @on(Button.Pressed, "#Btn_load_boards")
     def _pressed_load_boards(self) -> None:
-        self.app.dmap_file_path = self.query_one("#field_map_file").value
+        self.app.dmap_file_path = self.query_one("#field_map_file", Input).value
 
     @on(Button.Pressed, "#btn_open_close_device")
     def _pressed_open_close_device(self) -> None:
