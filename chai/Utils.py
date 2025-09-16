@@ -22,3 +22,11 @@ def build_data_type_string(data_desriptor) -> str:
         else:
             type_string += " fractional"
     return type_string.title()
+
+
+class AccessorHolder:
+    def __init__(self, accessor: da.GeneralRegisterAccessor, info: da.pb.RegisterInfo):
+        self.accessor = accessor
+        self.info = info
+    accessor: da.GeneralRegisterAccessor
+    info: da.pb.RegisterInfo
