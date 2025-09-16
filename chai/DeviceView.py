@@ -14,6 +14,7 @@ from chai.RegisterView import RegisterTree
 
 import os
 import sys
+from collections.abc import Callable
 
 
 class DeviceList(ListView):
@@ -101,6 +102,18 @@ class DeviceProperties(Vertical):
             "#field_device_identifier", Label).update(cdd or ""))
 
 
+class InputWithEnterAction(Input):
+    action: Callable[[], None] = lambda: None
+
+    def __init__(self, *args, **kwargs):
+        self.action = kwargs.pop("action", None)
+        super().__init__(*args, **kwargs)
+
+    def _key_enter(self, key) -> None:
+        if key.key == "enter":
+            self.action()
+
+
 class DmapView(Vertical):
     if TYPE_CHECKING:
         app: LayoutApp
@@ -108,7 +121,8 @@ class DmapView(Vertical):
     def compose(self) -> ComposeResult:
         yield Vertical(
             Label("Load dmap file from:"),
-            Input(id="field_root_dir", value=os.getcwd(), placeholder="Root directory"),
+            InputWithEnterAction(id="field_root_dir", value=os.getcwd(),
+                                 placeholder="Root directory", action=self._pressed_refresh_dir),
             DirectoryTree("./", id="directory_tree"),  # TODO: maybe add show non dmap, open on double click
             Label("or enter dmap file path:"),
             Input(placeholder="*.dmap", id="field_map_file"),
@@ -137,6 +151,18 @@ class DmapView(Vertical):
     def _file_selected(self, event: DirectoryTree.FileSelected) -> None:
         if event.path.name.endswith(".dmap"):
             self.query_one("#field_map_file", Input).value = event.path.as_posix()
+
+    @on(Button.Pressed, "#Btn_refresh_dir")
+    def _pressed_refresh_dir(self) -> None:
+        root_dir = self.query_one("#field_root_dir", Input).value
+        if os.path.isdir(root_dir):
+            self.query_one("#directory_tree", DirectoryTree).path = root_dir
+            self.query_one("#directory_tree", DirectoryTree).refresh()
+        else:
+            self.notify(f'Error: Directory "{root_dir}" does not exist!',
+                        title="Directory not found",
+                        severity="warning",
+                        )
 
 
 class DeviceView(Vertical):
