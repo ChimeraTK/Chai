@@ -192,8 +192,9 @@ class LayoutApp(App):
                 action="switch_screen('dmap')", description="dmap Screen", group=SortedGroup("dmap", order=0)),
         Binding(
             key="ctrl+d", priority=True, tooltip="Select Device", action="switch_screen('device')", description="Device Screen", group=SortedGroup("devices", order=1)),
-        Binding(
-            key="ctrl+i", priority=True, tooltip="Show Device Properties", action="switch_screen('properties')", description="Device Property Screen", group=SortedGroup("properties", order=2)),
+        # Properties screen currently not very useful
+        # Binding(
+        #    key="ctrl+i", priority=True, tooltip="Show Device Properties", action="switch_screen('properties')", description="Device Property Screen", group=SortedGroup("properties", order=2)),
         Binding(
             key="ctrl+r", priority=True, tooltip="Show Register Tree", action="switch_screen('register')", description="Device Register Screen", group=SortedGroup("registers", order=3)),
         Binding(
@@ -219,7 +220,7 @@ class LayoutApp(App):
 
     def on_mount(self) -> None:
         self.push_screen("device")
-        self.push_screen("properties")
+        # self.push_screen("properties") # currently not useful
         self.push_screen("register")
         self.push_screen("metadata")
         self.push_screen("content")
