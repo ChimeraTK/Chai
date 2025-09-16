@@ -107,7 +107,7 @@ class RegisterValueField(ScrollableContainer):
     def on_mount(self):
         self.watch(self.app, "currentRegister", lambda accessor: self.on_register_changed(accessor))
 
-        self.watch(self.app, "register_value_changed", lambda x: self.update())
+        self.watch(self.app, "registerValueChanged", lambda x: self.update())
 
     def on_register_changed(self, accessor: da.TwoDRegisterAccessor):
         if accessor is None:
