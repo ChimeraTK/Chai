@@ -1,6 +1,5 @@
 Static {
     content-align: center middle;
-
 }
 
 .main_col {
@@ -58,3 +57,18 @@ EditValueScreen {
 #field_register_path {
     column-span: 2;
 }
+
+DmapTree {
+    min-height: 20%;
+}
+
+DmapView .small_row {
+        layout: horizontal;
+        align: right middle;
+        height: auto;
+    }
+
+DmapView InputWithEnterAction {
+        height: auto;
+        width: 1fr;
+    }
