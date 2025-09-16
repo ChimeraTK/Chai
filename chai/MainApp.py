@@ -143,11 +143,6 @@ class LayoutApp(App):
         self.switch_screen("dmap")
         # self.push_screen(MainScreen()) # uncomment to see the original layout with all views visible
 
-    def exit(self) -> None:
-        if self.currentDevice:
-            self.currentDevice.close()
-        super().exit()
-
     def watch_device_alias(self, new_alias: str) -> None:
         self.currentDevice = da.Device(new_alias)
 
