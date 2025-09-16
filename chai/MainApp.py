@@ -37,7 +37,7 @@ class ConsoleHardwareInterface(Container):
 
 
 class NaviFooter(Footer):
-
+    # TODO: mark active screen in footer
     def compose(self):
         if not self._bindings_ready:
             return

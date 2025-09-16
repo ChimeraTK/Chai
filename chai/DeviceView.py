@@ -4,7 +4,7 @@ if TYPE_CHECKING:
     from MainApp import LayoutApp
 from textual.worker import Worker
 from textual.app import ComposeResult
-from textual.containers import Vertical, Horizontal
+from textual.containers import Vertical, Horizontal, Container
 from textual.widgets import Button, Label, Static, Input, Button, ListView, ListItem, Input, DirectoryTree, Checkbox
 
 from textual import on, log
@@ -132,15 +132,6 @@ class DmapTree(DirectoryTree):
             return (p for p in paths if p.is_dir and not p.name.startswith("."))
 
     def _directory_content(self, location: Path, worker: Worker) -> Iterator[Path]:
-        """Load the content of a given directory.
-
-        Args:
-            location: The location to load from.
-            worker: The worker that the loading is taking place in.
-
-        Yields:
-            Path: An entry within the location.
-        """
         try:
             for entry in location.iterdir():
                 if worker.is_cancelled:
@@ -164,11 +155,14 @@ class DmapView(Vertical):
             InputWithEnterAction(id="field_root_dir", value=os.getcwd(),
                                  placeholder="Root directory", action=self._pressed_refresh_dir),
             DmapTree("./", onlyDmap=True, showHidden=False, id="directory_tree"),  # TODO: open on double click
-            Checkbox("Show hidden", id="checkbox_show_hidden", value=False),
-            Checkbox("Only show .dmap files", id="checkbox_only_dmap", value=True),
-            Label("or enter dmap file path directly (enter to load):"),
-            InputWithEnterAction(placeholder="*.dmap", id="field_map_file", action=self._pressed_load_boards),
-            Button("Load dmap file", id="Btn_load_boards"),
+            Container(
+                Checkbox("Show hidden", id="checkbox_show_hidden", value=False, compact=True),
+                Checkbox("Only show .dmap files", id="checkbox_only_dmap", value=True, compact=True), classes="small_row"),
+            Label("Or enter dmap file path directly (enter to load):"),
+            Container(
+                InputWithEnterAction(placeholder="*.dmap", id="field_map_file", action=self._pressed_load_boards),
+                Button("Load dmap file", id="Btn_load_boards"),
+                classes="small_row"),
             id="devices",
             classes="main_col")
 
