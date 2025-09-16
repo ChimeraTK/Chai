@@ -14,6 +14,7 @@ from textual import on, events, log
 from chai import Utils
 
 import deviceaccess as da
+from chai.Utils import AccessorHolder
 
 
 class RegisterValueRow(Horizontal):
@@ -105,20 +106,20 @@ class RegisterValueField(ScrollableContainer):
         yield table
 
     def on_mount(self):
-        self.watch(self.app, "currentRegister", lambda accessor: self.on_register_changed(accessor))
+        self.watch(self.app, "register", lambda register: self.on_register_changed(register))
 
         self.watch(self.app, "registerValueChanged", lambda x: self.update())
 
-    def on_register_changed(self, accessor: da.TwoDRegisterAccessor):
-        if accessor is None:
+    def on_register_changed(self, register: AccessorHolder):
+        if register is None or not self.app.isOpen:
             return
-        self._isRaw = da.AccessMode.raw in accessor.getAccessModeFlags()
-        accessor.readLatest()
+        self._isRaw = da.AccessMode.raw in register.accessor.getAccessModeFlags()
+        register.accessor.readLatest()
         self._channel = 0
         self.update()
 
     def changeChannel(self, channel: int):
-        if self.app.currentRegister is None:
+        if self.app.register is None:
             return
         self._channel = channel
         self.update()
@@ -135,42 +136,42 @@ class RegisterValueField(ScrollableContainer):
         table = self.query_one(DataTable)
         row = table.cursor_coordinate.row
 
-        if not isinstance(self.app.currentRegister, da.TwoDRegisterAccessor):
+        if self.app.register is None or not isinstance(self.app.register.accessor, da.TwoDRegisterAccessor):
             return
 
         if self._isRaw:
 
             if table.cursor_coordinate.column == 0:  # "Value" (cooked)
-                self.app.currentRegister.setAsCooked(self._channel, row, value)
+                self.app.register.accessor.setAsCooked(self._channel, row, value)
             elif table.cursor_coordinate.column == 1:  # "Raw (dec)"
-                self.app.currentRegister[self._channel][row] = int(value)
+                self.app.register.accessor[self._channel][row] = int(value)
             elif table.cursor_coordinate.column == 2:  # "Raw (hex)"
-                self.app.currentRegister[self._channel][row] = int(value, 16)
+                self.app.register.accessor[self._channel][row] = int(value, 16)
 
             table.update_cell_at(
-                coordinate=Coordinate(row, 0), value=self.app.currentRegister.getAsCooked(str, self._channel, row), update_width=True)
+                coordinate=Coordinate(row, 0), value=self.app.register.accessor.getAsCooked(str, self._channel, row), update_width=True)
             table.update_cell_at(coordinate=Coordinate(row, 1), value=str(
-                self.app.currentRegister[self._channel][row]), update_width=True)
+                self.app.register.accessor[self._channel][row]), update_width=True)
             table.update_cell_at(coordinate=Coordinate(row, 2), value=hex(
-                self.app.currentRegister[self._channel][row]), update_width=True)
+                self.app.register.accessor[self._channel][row]), update_width=True)
 
         else:
-            self.app.currentRegister[self._channel][row] = int(value)
+            self.app.register.accessor[self._channel][row] = int(value)
             table.update_cell_at(coordinate=Coordinate(row, 0), value=str(
-                self.app.currentRegister[self._channel][row]), update_width=True)
+                self.app.register.accessor[self._channel][row]), update_width=True)
 
     def update(self) -> None:
         table = self.query_one(DataTable)
         table.clear(True)
 
-        if not isinstance(self.app.currentRegister, da.TwoDRegisterAccessor):
+        if self.app.register is None or not isinstance(self.app.register.accessor, da.TwoDRegisterAccessor):
             return
 
         if self._isRaw:
             table.add_columns('Value', 'Raw (dec)', 'Raw (hex)')
-            for element, value in enumerate(self.app.currentRegister[self._channel]):
+            for element, value in enumerate(self.app.register.accessor[self._channel]):
                 table.add_row(
-                    self.app.currentRegister.getAsCooked(
+                    self.app.register.accessor.getAsCooked(
                         str,
                         self._channel,
                         element),
@@ -179,7 +180,7 @@ class RegisterValueField(ScrollableContainer):
                     label=str(element))
         else:
             table.add_columns('Value')
-            for element, value in enumerate(self.app.currentRegister[self._channel]):
+            for element, value in enumerate(self.app.register.accessor[self._channel]):
                 table.add_row(value, label=str(element))
 
 
@@ -203,11 +204,12 @@ class RegisterInfo(Grid):
         yield Input(value="0", placeholder="0", id="edit_value_dialog_input", type="integer")
 
     def on_mount(self):
-        self.watch(self.app, "registerInfo", lambda info: self.on_regster_info_changed(info))
+        self.watch(self.app, "register", lambda register: self.on_regster_info_changed(register))
 
-    def on_regster_info_changed(self, info: da.pb.RegisterInfo):
-        if info is None:
+    def on_regster_info_changed(self, register: AccessorHolder):
+        if register is None:
             return
+        info = register.info
         self.query_one("#field_register_path", Static).update(info.getRegisterName())
         self.query_one("#label_nELements", Static).update(str(info.getNumberOfElements()))
         self.query_one("#label_nChannels", Static).update(str(info.getNumberOfChannels()))

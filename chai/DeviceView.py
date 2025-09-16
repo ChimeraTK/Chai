@@ -174,8 +174,8 @@ class DmapView(Vertical):
 
     def on_mount(self) -> None:
         self.query_one("#directory_tree", DirectoryTree).guide_depth = 2
-        self.query_one("#field_map_file", Input).value = sys.argv[1]
         if len(sys.argv) > 1:
+            self.query_one("#field_map_file", Input).value = sys.argv[1]
             self.query_one("#Btn_load_boards", Button).press()
 
     @on(Button.Pressed, "#Btn_load_boards")

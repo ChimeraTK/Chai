@@ -13,6 +13,8 @@ from chai import Utils
 
 import deviceaccess as da
 
+from chai.Utils import AccessorHolder
+
 
 class RegisterTree(Tree):
 
@@ -23,7 +25,6 @@ class RegisterTree(Tree):
 
     def on_mount(self) -> None:
         self.watch(self.app, "currentDevice", lambda device: self.on_device_changed(device))
-        self.watch(self.app, "registerInfo", lambda info: self.on_regster_info_changed(info))
 
     def on_device_changed(self, device: da.Device) -> None:
         self._tree.clear()
@@ -73,11 +74,8 @@ class RegisterTree(Tree):
             return
 
         rc = self.app.currentDevice.getRegisterCatalogue()
-        self.app.registerInfo = rc.getRegister(currentRegisterPath)
+        info = rc.getRegister(currentRegisterPath)
 
-    def on_regster_info_changed(self, info: da.pb.RegisterInfo):
-        if info is None or self.app.currentDevice is None:
-            return
         dd = info.getDataDescriptor()
         if dd.rawDataType().getAsString() != "unknown" and dd.rawDataType().getAsString() != "none":
             # raw transfers are supported
@@ -94,11 +92,13 @@ class RegisterTree(Tree):
             flags = [da.AccessMode.wait_for_new_data]
 
         if info.getDataDescriptor().fundamentalType() != da.FundamentalType.nodata:
-            self.app.currentRegister = self.app.currentDevice.getTwoDRegisterAccessor(
+            accessor = self.app.currentDevice.getTwoDRegisterAccessor(
                 np_type, info.getRegisterName(), accessModeFlags=flags)
         else:
-            self.app.currentRegister = self.app.currentDevice.getVoidRegisterAccessor(
+            accessor = self.app.currentDevice.getVoidRegisterAccessor(
                 info.getRegisterName(), accessModeFlags=flags)
+
+        self.app.register = AccessorHolder(accessor, info)
 
 
 class RegisterView(Vertical):

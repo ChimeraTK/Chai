@@ -22,6 +22,8 @@ from chai.RegisterView import RegisterView
 from chai.DataView import DataView
 from chai.ActionsView import ActionsView
 
+from chai.Utils import AccessorHolder
+
 
 class ConsoleHardwareInterface(Container):
 
@@ -204,8 +206,7 @@ class LayoutApp(App):
 
     isOpen: Reactive[bool] = Reactive(False)
 
-    currentRegister: Reactive[da.GeneralRegisterAccessor | None] = Reactive(None)
-    registerInfo: Reactive[da.pb.RegisterInfo | None] = Reactive(None)
+    register: Reactive[AccessorHolder | None] = Reactive(None)
     registerValueChanged: Reactive[int] = Reactive(int)  # value does not matter, change informs about read operation
 
     def on_mount(self) -> None:
