@@ -196,17 +196,17 @@ class LayoutApp(App):
             key="ctrl+o", priority=True, tooltip="Show Options", action="switch_screen('options')", description="Options Screen", group=SortedGroup("options", order=6)),
     ]
 
-    dmap_file_path: Reactive[str | None] = Reactive(None)
+    dmapFilePath: Reactive[str | None] = Reactive(None)
 
-    device_alias: Reactive[str | None] = Reactive(None)
-    device_cdd: Reactive[str | None] = Reactive(None)
-    currentDevice: da.Device | None = None
+    deviceAlias: Reactive[str | None] = Reactive(None)
+    deviceCdd: Reactive[str | None] = Reactive(None)
+    currentDevice: Reactive[da.Device | None] = Reactive(None)
 
-    is_open: Reactive[bool] = Reactive(False)
+    isOpen: Reactive[bool] = Reactive(False)
 
     currentRegister: Reactive[da.GeneralRegisterAccessor | None] = Reactive(None)
     registerInfo: Reactive[da.pb.RegisterInfo | None] = Reactive(None)
-    register_value_changed: Reactive[int] = Reactive(int)  # value does not matter, change informs about read operation
+    registerValueChanged: Reactive[int] = Reactive(int)  # value does not matter, change informs about read operation
 
     def on_mount(self) -> None:
         self.push_screen("device")
@@ -218,10 +218,10 @@ class LayoutApp(App):
         self.push_screen("dmap")
         # self.push_screen(MainScreen()) # uncomment to see the original layout with all views visible
 
-    def watch_device_alias(self, new_alias: str) -> None:
+    def watch_deviceAlias(self, new_alias: str) -> None:
         self.currentDevice = da.Device(new_alias)
 
-    def watch_is_open(self, open: bool) -> None:
+    def watch_isOpen(self, open: bool) -> None:
         if self.currentDevice is None:
             return
         if open:
