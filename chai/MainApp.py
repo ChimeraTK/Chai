@@ -209,6 +209,8 @@ class LayoutApp(App):
     register: Reactive[AccessorHolder | None] = Reactive(None)
     registerValueChanged: Reactive[int] = Reactive(int)  # value does not matter, change informs about read operation
 
+    channel: Reactive[int] = Reactive(0)
+
     def on_mount(self) -> None:
         self.push_screen("device")
         self.push_screen("properties")

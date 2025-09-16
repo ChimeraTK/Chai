@@ -72,7 +72,6 @@ class EditValueScreen(ModalScreen):
 
 class RegisterValueField(ScrollableContainer):
 
-    _channel: int = 0
     _isRaw: bool = False
     if TYPE_CHECKING:
         app: LayoutApp
@@ -85,26 +84,20 @@ class RegisterValueField(ScrollableContainer):
     def on_mount(self):
         self.watch(self.app, "register", lambda register: self.on_register_changed(register))
         self.watch(self.app, "isOpen", lambda open: self.on_open_close(open))
-
         self.watch(self.app, "registerValueChanged", lambda x: self.update())
+        self.watch(self.app, "channel", lambda x: self.update())
 
     def on_register_changed(self, register: AccessorHolder):
         if register is not None:
             self._isRaw = da.AccessMode.raw in register.accessor.getAccessModeFlags()
             if self.app.isOpen:
                 register.accessor.readLatest()
-        self._channel = 0
+        self.app.channel = 0
         self.update()
 
     def on_open_close(self, open: bool):
         if open and self.app.register is not None:
             self.app.register.accessor.readLatest()
-        self.update()
-
-    def changeChannel(self, channel: int):
-        if self.app.register is None:
-            return
-        self._channel = channel
         self.update()
 
     def on_key(self, event: events.Key) -> None:
@@ -125,23 +118,23 @@ class RegisterValueField(ScrollableContainer):
         if self._isRaw:
 
             if table.cursor_coordinate.column == 0:  # "Value" (cooked)
-                self.app.register.accessor.setAsCooked(self._channel, row, value)
+                self.app.register.accessor.setAsCooked(self.app.channel, row, value)
             elif table.cursor_coordinate.column == 1:  # "Raw (dec)"
-                self.app.register.accessor[self._channel][row] = int(value)
+                self.app.register.accessor[self.app.channel][row] = int(value)
             elif table.cursor_coordinate.column == 2:  # "Raw (hex)"
-                self.app.register.accessor[self._channel][row] = int(value, 16)
+                self.app.register.accessor[self.app.channel][row] = int(value, 16)
 
             table.update_cell_at(
-                coordinate=Coordinate(row, 0), value=self.app.register.accessor.getAsCooked(str, self._channel, row), update_width=True)
+                coordinate=Coordinate(row, 0), value=self.app.register.accessor.getAsCooked(str, self.app.channel, row), update_width=True)
             table.update_cell_at(coordinate=Coordinate(row, 1), value=str(
-                self.app.register.accessor[self._channel][row]), update_width=True)
+                self.app.register.accessor[self.app.channel][row]), update_width=True)
             table.update_cell_at(coordinate=Coordinate(row, 2), value=hex(
-                self.app.register.accessor[self._channel][row]), update_width=True)
+                self.app.register.accessor[self.app.channel][row]), update_width=True)
 
         else:
-            self.app.register.accessor[self._channel][row] = int(value)
+            self.app.register.accessor[self.app.channel][row] = int(value)
             table.update_cell_at(coordinate=Coordinate(row, 0), value=str(
-                self.app.register.accessor[self._channel][row]), update_width=True)
+                self.app.register.accessor[self.app.channel][row]), update_width=True)
 
     def update(self) -> None:
         table = self.query_one(DataTable)
@@ -152,23 +145,25 @@ class RegisterValueField(ScrollableContainer):
 
         if self._isRaw:
             table.add_columns('Value', 'Raw (dec)', 'Raw (hex)')
-            for element, value in enumerate(self.app.register.accessor[self._channel]):
+            for element, value in enumerate(self.app.register.accessor[self.app.channel]):
                 table.add_row(
                     self.app.register.accessor.getAsCooked(
                         str,
-                        self._channel,
+                        self.app.channel,
                         element),
                     value,
                     hex(value),
                     label=str(element))
         else:
             table.add_columns('Value')
-            for element, value in enumerate(self.app.register.accessor[self._channel]):
+            for element, value in enumerate(self.app.register.accessor[self.app.channel]):
                 table.add_row(value, label=str(element))
 
 
 class RegisterInfo(Grid):
     _nChannels: int = 0
+    if TYPE_CHECKING:
+        app: LayoutApp
 
     def compose(self) -> ComposeResult:
         yield Label("Register Path", id="label_register_path")
@@ -184,10 +179,11 @@ class RegisterInfo(Grid):
         yield Label("wait_for_new_data")
         yield Static("", id="label_wait_for_new_data")
         yield Label("Channel:")
-        yield Input(value="0", placeholder="0", id="edit_value_dialog_input", type="integer")
+        yield Input(value="0", placeholder="0", id="channel_input", type="integer")
 
     def on_mount(self):
         self.watch(self.app, "register", lambda register: self.on_regster_info_changed(register))
+        self.watch(self.app, "channel", lambda channel: self.on_channel_changed(channel))
 
     def on_regster_info_changed(self, register: AccessorHolder):
         if register is None:
@@ -207,6 +203,9 @@ class RegisterInfo(Grid):
         elif info.getNumberOfDimensions() == 2:
             self.query_one("#label_dimensions", Static).update("2D")
 
+    def on_channel_changed(self, channel: int) -> None:
+        self.query_one("#channel_input", Input).value = str(channel)
+
     def on_input_submitted(self, change: Input.Submitted) -> None:
         if change.value.isdigit():
             value = int(change.value)
@@ -217,7 +216,7 @@ class RegisterInfo(Grid):
             value = self._nChannels - 1
             change.input.value = str(value)
             self.notify("Channel out of range.", severity="warning")
-        self.app.query_one(RegisterValueField).changeChannel(value)
+        self.app.channel = value
 
 
 class DataView(Vertical):
