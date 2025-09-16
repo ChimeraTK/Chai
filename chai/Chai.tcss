@@ -72,3 +72,7 @@ DmapView InputWithEnterAction {
         height: auto;
         width: 1fr;
     }
+
+FooterKey.selected {
+    background: $block-hover-background;
+}

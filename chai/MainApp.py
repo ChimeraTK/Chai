@@ -38,6 +38,12 @@ class ConsoleHardwareInterface(Container):
 
 class NaviFooter(Footer):
     # TODO: mark active screen in footer
+    currentScreen: str
+
+    def __init__(self, *args, **kwargs):
+        self.currentScreen = kwargs.pop("currentScreen")
+        super().__init__(*args, **kwargs)
+
     def compose(self):
         if not self._bindings_ready:
             return
@@ -84,7 +90,7 @@ class NaviFooter(Footer):
                         action=binding.action,
                         disabled=not enabled,
                         tooltip=tooltip or binding.description,
-                        classes="-grouped",
+                        classes="-grouped" + ("" if group.description != self.currentScreen else " selected"),
                     ).data_bind(Footer.compact)
 
             else:
@@ -105,7 +111,7 @@ class DmapScreen(Screen):
     def compose(self) -> ComposeResult:
         yield Header()
         yield DmapView()
-        yield NaviFooter()
+        yield NaviFooter(currentScreen="dmap")
 
 
 class DeviceScreen(Screen):
@@ -113,7 +119,7 @@ class DeviceScreen(Screen):
     def compose(self) -> ComposeResult:
         yield Header()
         yield DeviceView()
-        yield NaviFooter()
+        yield NaviFooter(currentScreen="devices")
 
 
 class PropertiesScreen(Screen):
@@ -121,7 +127,7 @@ class PropertiesScreen(Screen):
     def compose(self) -> ComposeResult:
         yield Header()
         yield DeviceProperties()
-        yield NaviFooter()
+        yield NaviFooter(currentScreen="properties")
 
 
 class RegisterScreen(Screen):
@@ -129,14 +135,14 @@ class RegisterScreen(Screen):
     def compose(self) -> ComposeResult:
         yield Header()
         yield RegisterView()
-        yield NaviFooter()
+        yield NaviFooter(currentScreen="registers")
 
 
 class MetaDataScreen(Screen):
 
     def compose(self) -> ComposeResult:
         yield Static("This is the MetaData screen")
-        yield NaviFooter()
+        yield NaviFooter(currentScreen="meta")
 
 
 class ContentScreen(Screen):
@@ -144,7 +150,7 @@ class ContentScreen(Screen):
     def compose(self) -> ComposeResult:
         yield Header()
         yield DataView()
-        yield NaviFooter()
+        yield NaviFooter(currentScreen="content")
 
 
 class OptionsScreen(Screen):
@@ -152,7 +158,7 @@ class OptionsScreen(Screen):
     def compose(self) -> ComposeResult:
         yield Header()
         yield ActionsView()
-        yield NaviFooter()
+        yield NaviFooter(currentScreen="options")
 
 
 class MainScreen(Screen):
