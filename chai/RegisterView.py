@@ -4,7 +4,7 @@ if TYPE_CHECKING:
 from textual.app import ComposeResult
 from textual.containers import Horizontal, Vertical
 from textual.widgets import Button, Label, Tree, Input, Checkbox, Button, Input
-from textual import on
+from textual import log, on
 
 from chai.DataView import RegisterValueField
 from chai.ActionsView import ActionsView
@@ -22,16 +22,16 @@ class RegisterTree(Tree):
         app: LayoutApp
 
     def on_mount(self) -> None:
-        self.watch(self.app, "is_open", lambda open: self.on_device_changed(open))
+        self.watch(self.app, "currentDevice", lambda device: self.on_device_changed(device))
         self.watch(self.app, "registerInfo", lambda info: self.on_regster_info_changed(info))
 
-    def on_device_changed(self, open: bool) -> None:
+    def on_device_changed(self, device: da.Device) -> None:
         self._tree.clear()
-        if not open or self.app.currentDevice is None:
+        if device is None:
             return
 
         register_names = []
-        for reg in self.app.currentDevice.getRegisterCatalogue():
+        for reg in device.getRegisterCatalogue():
             register_names.append(reg.getRegisterName())
 
         self._register_names = register_names

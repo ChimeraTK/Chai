@@ -82,7 +82,7 @@ class ActionsView(Vertical):
         if self.app.currentRegister is None:
             return
         self.app.currentRegister.readLatest()
-        self.app.register_value_changed += 1  # value does not matter, change to inform subscribers about read
+        self.app.registerValueChanged += 1  # value does not matter, change to inform subscribers about read
         self.query_one("#last_update_time", Label).update(str(datetime.now()))
 
     @on(Button.Pressed, "#btn_write")

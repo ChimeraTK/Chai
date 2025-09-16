@@ -23,6 +23,7 @@ class DeviceList(ListView):
         app: LayoutApp
 
     def updateDmapFile(self, filename: str):
+        log(f"updateDmapFile  {filename}")
         self.clear()
         if filename is None:
             return
@@ -34,10 +35,10 @@ class DeviceList(ListView):
     def on_list_view_selected(self, selected: ListView.Selected) -> None:
         itemLabel = selected.item.children[0]
         assert isinstance(itemLabel, Label)
-        self.app.is_open = False
-        self.app.device_alias = str(itemLabel.content)
-        self.app.device_cdd = self._devices[self.app.device_alias]
-        self.app.is_open = True
+        self.app.isOpen = False
+        self.app.deviceAlias = str(itemLabel.content)
+        self.app.deviceCdd = self._devices[self.app.deviceAlias]
+        self.app.isOpen = True
 
     def _parseDmapFile(self, dmapPath: str) -> dict[str, str]:
         devices = {}
@@ -73,7 +74,7 @@ class DeviceList(ListView):
         return devices
 
     def on_mount(self) -> None:
-        self.watch(self.app, "dmap_file_path", lambda path: self.updateDmapFile(path))
+        self.watch(self.app, "dmapFilePath", lambda path: self.updateDmapFile(path))
 
 
 class DeviceProperties(Vertical):
@@ -93,14 +94,17 @@ class DeviceProperties(Vertical):
             classes="main_col")
 
     def on_mount(self) -> None:
-        self.watch(self.app, "device_alias", lambda alias: self.query_one(
+        self.watch(self.app, "deviceAlias", lambda alias: self.query_one(
             "#field_device_name", Label).update(alias or "No device loaded."))
 
-        self.watch(self.app, "device_cdd", lambda cdd: self.query_one(
-            "#field_device_identifier").update(cdd or ""))
+        self.watch(self.app, "deviceCdd", lambda cdd: self.query_one(
+            "#field_device_identifier", Label).update(cdd or ""))
 
 
 class DmapView(Vertical):
+    if TYPE_CHECKING:
+        app: LayoutApp
+
     def compose(self) -> ComposeResult:
         yield Vertical(
             Label("Load dmap file from:"),
@@ -117,14 +121,14 @@ class DmapView(Vertical):
             classes="main_col")
 
     def on_mount(self) -> None:
-        self.query_one("#directory_tree").guide_depth = 2
-        self.query_one("#field_map_file").value = sys.argv[1]
+        self.query_one("#directory_tree", DirectoryTree).guide_depth = 2
+        self.query_one("#field_map_file", Input).value = sys.argv[1]
         if len(sys.argv) > 1:
-            self.query_one("#Btn_load_boards").press()
+            self.query_one("#Btn_load_boards", Button).press()
 
     @on(Button.Pressed, "#Btn_load_boards")
     def _pressed_load_boards(self) -> None:
-        self.app.dmap_file_path = self.query_one("#field_map_file").value
+        self.app.dmapFilePath = self.query_one("#field_map_file", Input).value
         # switch view
         # TODO: if valid dmap path from terminal start was supplied, change to device view as start
         self.app.switch_screen("device")
@@ -132,7 +136,7 @@ class DmapView(Vertical):
     @on(DirectoryTree.FileSelected, "#directory_tree")
     def _file_selected(self, event: DirectoryTree.FileSelected) -> None:
         if event.path.name.endswith(".dmap"):
-            self.query_one("#field_map_file").value = event.path.as_posix()
+            self.query_one("#field_map_file", Input).value = event.path.as_posix()
 
 
 class DeviceView(Vertical):
@@ -157,10 +161,14 @@ class DeviceView(Vertical):
         def change_is_open(open: bool) -> None:
             self.query_one("#label_device_status", Label).update("Device is "+("open" if open else "closed"))
             self.query_one("#btn_open_close_device", Button).label = "Close" if open else "Open"
-            self.query_one("#btn_open_close_device", Button).disabled = self.app.device_alias is None
+            self.query_one("#btn_open_close_device", Button).disabled = self.app.deviceAlias is None
 
-        self.watch(self.app, "is_open", change_is_open)
+        self.watch(self.app, "isOpen", change_is_open)
+
+    @on(Button.Pressed, "#Btn_load_boards")
+    def _pressed_load_boards(self) -> None:
+        self.app.dmapFilePath = self.query_one("#field_map_file", Input).value
 
     @on(Button.Pressed, "#btn_open_close_device")
     def _pressed_open_close_device(self) -> None:
-        self.app.is_open = not self.app.is_open
+        self.app.isOpen = not self.app.isOpen
