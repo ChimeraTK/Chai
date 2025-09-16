@@ -17,29 +17,6 @@ import deviceaccess as da
 from chai.Utils import AccessorHolder
 
 
-class RegisterValueRow(Horizontal):
-
-    channel = 0
-
-    raw = Input()
-    cooked = Input()
-    hex = Input()
-    raw = 0
-
-    def __init__(self, raw):
-        self.raw = raw
-        super().__init__()
-
-    def compose(self):
-        yield Container(Input(placeholder=str(self.raw)))
-        yield Container(Input())
-        yield Container(Input())
-
-    def update(self, raw_value):
-        self.raw = raw_value
-        self.recompose
-
-
 class EditValueScreen(ModalScreen):
     table: DataTable
     first_submit: bool
