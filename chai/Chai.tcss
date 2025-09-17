@@ -77,6 +77,63 @@ FooterKey.selected {
     text-style: bold reverse;
 }
 
+DeviceView #device_list_top_container {
+    layout: horizontal;
+    height: auto;
+    width: 1fr;
+    align: center middle;
+}
+
+DeviceView #device_status_container {
+    layout: vertical;
+    height: auto;
+    width: 1fr;
+    margin-left: 1;
+    border: $accent 50% round;
+}
+
+DeviceView #btn_open_close_device {
+    width: 1fr;
+    margin: 0 4 1 4;
+}
+
+DeviceView #device_list {
+    height: auto;
+    width: 3fr;
+    margin: 1;
+    max-height: 60vh;
+}
+
+DeviceList Static {
+    height: auto;
+    width: 1fr;
+    margin: 0 0 0 1;
+    content-align: left middle;
+}
+
+DeviceView #label_device_status {
+    height: auto;
+    width: 1fr;
+    margin: 1;
+    content-align: center middle;
+    min-height: 10vh;
+}
+
+DeviceView #label_device_cdd_header {
+    width: 1fr;
+    content-align: left middle;
+    margin-left: 1;
+    height: auto;
+}
+
+DeviceView #field_device_identifier {
+    width: 1fr;
+    content-align: left middle;
+    margin-left: 1;
+    height: auto;
+    min-height: 10vh;
+}
+
 
 ExceptionDialog {
     align: center middle;

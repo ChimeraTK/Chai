@@ -219,15 +219,18 @@ class DeviceView(Vertical):
         app: LayoutApp
 
     def compose(self) -> ComposeResult:
-        yield Vertical(
-            DeviceList(id="device_list"),
-            Vertical(
-                Label("Device status"),
-                Vertical(
+        yield Container(
+            Container(
+                DeviceList(id="device_list"),
+                Container(
                     Label("No device loaded.", id="label_device_status"),
                     Button("Open", id="btn_open_close_device", disabled=True),
+                    id="device_status_container",
                 ),
+                id="device_list_top_container",
             ),
+            Static("Opened device CDD:", id="label_device_cdd_header"),
+            Label("-", id="field_device_identifier"),
             id="devices",
             classes="main_col")
 
@@ -240,9 +243,8 @@ class DeviceView(Vertical):
 
         self.watch(self.app, "isOpen", change_is_open)
 
-    @on(Button.Pressed, "#Btn_load_boards")
-    def _pressed_load_boards(self) -> None:
-        self.app.dmapFilePath = self.query_one("#field_map_file", Input).value
+        self.watch(self.app, "deviceCdd", lambda cdd: self.query_one(
+            "#field_device_identifier", Label).update(cdd or "-"))
 
     @on(Button.Pressed, "#btn_open_close_device")
     def _pressed_open_close_device(self) -> None:
@@ -252,7 +254,9 @@ class DeviceView(Vertical):
     def _on_double_click(self, event: Click) -> None:
         if event.chain >= 2 and isinstance(event.widget, Label) and isinstance(event.widget.parent, ListItem):
             item: ListItem | None = event.widget.parent
-            list = self.query_one("#device_list", DeviceList)
+            list: DeviceList = self.query_one("#device_list", DeviceList)
+            if list.index is None or item is None:
+                return
             list.on_list_view_selected(ListView.Selected(list, item, list.index))
             # TODO: bad devices should not result in a switch to register screen
             if self.app.isOpen:
