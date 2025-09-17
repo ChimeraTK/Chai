@@ -25,7 +25,6 @@ class DeviceList(ListView):
         app: LayoutApp
 
     def updateDmapFile(self, filename: str):
-        log(f"updateDmapFile  {filename}")
         self.clear()
         if filename is None:
             return
