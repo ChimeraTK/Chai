@@ -73,32 +73,7 @@ class RegisterTree(Tree):
         if self.app.currentDevice is None:
             return
 
-        rc = self.app.currentDevice.getRegisterCatalogue()
-        info = rc.getRegister(currentRegisterPath)
-
-        dd = info.getDataDescriptor()
-        if dd.rawDataType().getAsString() != "unknown" and dd.rawDataType().getAsString() != "none":
-            # raw transfers are supported
-            np_type = Utils.get_raw_numpy_type(dd.rawDataType())
-            flags = [da.AccessMode.raw]
-        else:
-            # no raw transfer supported
-            np_type = Utils.get_raw_numpy_type(dd.minimumDataType())
-            flags = []
-
-        if da.AccessMode.wait_for_new_data in info.getSupportedAccessModes():
-            # we cannot use raw and wait_for_new_data at the same time
-            self.app.currentDevice.activateAsyncRead()
-            flags = [da.AccessMode.wait_for_new_data]
-
-        if info.getDataDescriptor().fundamentalType() != da.FundamentalType.nodata:
-            accessor = self.app.currentDevice.getTwoDRegisterAccessor(
-                np_type, info.getRegisterName(), accessModeFlags=flags)
-        else:
-            accessor = self.app.currentDevice.getVoidRegisterAccessor(
-                info.getRegisterName(), accessModeFlags=flags)
-
-        self.app.register = AccessorHolder(accessor, info)
+        self.app.registerPath = currentRegisterPath
 
 
 class RegisterView(Vertical):

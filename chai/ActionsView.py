@@ -6,9 +6,7 @@ from textual.app import ComposeResult
 from textual.containers import Vertical
 from textual.widgets import Button, Label, Static, Checkbox, Button, RadioSet, RadioButton
 
-from textual import on, work
-from textual.timer import Timer
-from textual.worker import get_current_worker
+from textual import on
 
 import deviceaccess as da
 from datetime import datetime
@@ -20,21 +18,12 @@ from chai.Utils import AccessorHolder
 
 
 class ActionsView(Vertical):
-    _update_timer: Timer | None = None
-    _pushMode: bool
-    _last_update_time = None
-    _avg_update_interval_list: deque = deque(maxlen=10)
     if TYPE_CHECKING:
         app: LayoutApp
 
+    _avg_update_interval_list: deque = deque(maxlen=10)
+
     def compose(self) -> ComposeResult:
-        self._pushMode = self.app.register is not None and    \
-            da.AccessMode.wait_for_new_data in self.app.register.accessor.getAccessModeFlags()
-
-        register = self.app.register
-        disableRead = True if register is None or not self.app.isOpen else not register.accessor.isReadable()
-        disableWrite = True if register is None or not self.app.isOpen else not register.accessor.isWriteable()
-
         self.add_class("main_col")
 
         yield Label("Options")
@@ -44,137 +33,88 @@ class ActionsView(Vertical):
         )
         yield Label("Operations")
         yield Vertical(
-            Button("Read", disabled=disableRead, id="btn_read"),
-            Button("Write", disabled=disableWrite, id="btn_write"),
+            Button("Read", disabled=True, id="btn_read"),
+            Button("Write", disabled=True, id="btn_write"),
         )
-        yield Label("Continous Read" if self._pushMode else "Continous Poll", id="label_ctn_pollread")
+        yield Label("(placeholder)", id="label_ctn_pollread")
         yield Vertical(
-            Checkbox("enabled", id="checkbox_cont_pollread", value=False, disabled=disableRead),
+            Checkbox("enabled", id="checkbox_cont_pollread", value=False, disabled=True),
             Label("Poll frequency", id="label_poll_update_frq"),
             RadioSet(
                 RadioButton("1 Hz", value=True, id="radio_hz_1"),
                 RadioButton("100 Hz", id="radio_hz_100"),
                 disabled=True,
                 id="radio_set_freq"
-            ) if not self._pushMode else Static(),
-            Label("Last update time" if self._pushMode else "Last poll time"),
+            ),
+            Label("(placeholder)", id="label_last_poll_update"),
             Label("(never)", id="last_update_time"),
             Label("Avg. update interval"),
             Label("(n/a)", id="update_interval"),
         )
 
+    def update(self) -> None:
+        self.app.pushMode = self.app.register is not None and    \
+            da.AccessMode.wait_for_new_data in self.app.register.accessor.getAccessModeFlags()
+        self.app.continuousRead = False
+        self.app.continuousPollHz = 1.
+
+        register = self.app.register
+        disableRead = True if register is None or not self.app.isOpen else not register.accessor.isReadable()
+        disableWrite = True if register is None or not self.app.isOpen else not register.accessor.isWriteable()
+
+        self.query_one("#btn_read", Button).disabled = disableRead
+        self.query_one("#btn_write", Button).disabled = disableWrite
+        self.query_one("#checkbox_cont_pollread", Checkbox).disabled = disableRead
+        self.query_one("#label_ctn_pollread", Label).update(
+            "Continuous Read" if self.app.pushMode else "Continuous Poll")
+
+        self.query_one("#label_poll_update_frq", Label).visible = not self.app.pushMode
+        self.query_one("#radio_set_freq", RadioSet).visible = not self.app.pushMode
+
+        self.query_one("#label_last_poll_update", Label).update(
+            "Last update time" if self.app.pushMode else "Last poll time")
+
     def on_mount(self) -> None:
-        self.watch(self.app, "register", lambda old_register,
-                   new_register: self.on_register_changed(old_register, new_register))
-        self.watch(self.app, "isOpen", lambda open: self.on_open_close(open))
+        self.watch(self.app, "register", lambda register: self.update())
+        self.watch(self.app, "isOpen", lambda open: self.update())
 
-    def on_register_changed(self, old_register: AccessorHolder, new_register: AccessorHolder):
-        if self._update_timer is not None:
-            self._update_timer.stop()
-            self._update_timer = None
+        self.watch(self.app, "registerValueChanged", lambda old, new: self.on_registerValueChanged(old, new))
+        self.watch(self.app, "continuousRead", lambda cr: self._update_read_write_btn_status())
 
-        if self._pushMode:
-            old_register.accessor.interrupt()
+        self.update()
 
-        self.refresh(recompose=True)
+    def on_registerValueChanged(self, old_time: datetime, new_time: datetime):
+        self.query_one("#last_update_time", Label).update(str(new_time))
 
-    def on_open_close(self, open: bool):
-        if self._update_timer is not None:
-            self._update_timer.stop()
-            self._update_timer = None
-
-        if self._pushMode and self.app.register is not None:
-            self.app.register.accessor.interrupt()
-
-        self.refresh(recompose=True)
+        if old_time is not None:
+            self._avg_update_interval_list.append((new_time - old_time).total_seconds())
+            avg = sum(self._avg_update_interval_list) / len(self._avg_update_interval_list)
+            self.query_one("#update_interval", Label).update(f"{round(avg * 1000)} ms")
 
     def on_unmount(self):
-        if self._pushMode and self.app.register is not None:
+        if self.app.pushMode and self.app.register is not None:
             self.app.register.accessor.interrupt()
-
-    @on(Button.Pressed, "#btn_read")
-    def _pressed_read(self) -> None:
-        if self.app.register is None or not self.app.isOpen:
-            return
-        try:
-            self.app.register.accessor.readLatest()
-        except RuntimeError as e:
-            self.app.push_screen(ExceptionDialog("Error reading from device", e, True))
-
-        self.app.registerValueChanged += 1  # value does not matter, change to inform subscribers about read
-        self.query_one("#last_update_time", Label).update(str(datetime.now()))
-
-    @on(Button.Pressed, "#btn_write")
-    def _pressed_write(self) -> None:
-        if self.app.register is None or not self.app.isOpen:
-            return
-        try:
-            self.app.register.accessor.write()
-        except RuntimeError as e:
-            self.app.push_screen(ExceptionDialog("Error while writing to device", e, True))
-        if self.query_one("#checkbox_read_after_write", Checkbox).value:
-            self._pressed_read()
 
     def _update_read_write_btn_status(self):
         pollread = self.query_one("#checkbox_cont_pollread", Checkbox)
         if self.app.register is not None:
             self.query_one("#btn_read").disabled = (pollread.value or not self.app.register.accessor.isReadable())
             self.query_one("#btn_write").disabled = (pollread.value or not self.app.register.accessor.isWriteable())
+        if not self.app.pushMode:
+            self.query_one("#radio_set_freq").disabled = not self.app.continuousRead
 
-    @work(exclusive=True, thread=True)
-    def _update_push_loop(self) -> None:
-        worker = get_current_worker()
-        register = self.app.register
-        while not worker.is_cancelled and register is not None:
-            try:
-                register.accessor.read()
-            except RuntimeError as e:
-                self.app.call_from_thread(self._update_push_single, e)
-            self.app.call_from_thread(self._update_push_single)
-
-    def _update_push_single(self, exception: RuntimeError | None = None) -> None:
-        if exception is not None:
-            self.app.push_screen(ExceptionDialog("Error while reading from device", exception, True))
-            return
-
-        now = datetime.now()
-        self.query_one("#last_update_time", Label).update(str(now))
-        self.app.registerValueChanged += 1  # value does not matter, change to inform subscribers about read
-
-        if self._last_update_time is not None:
-            self._avg_update_interval_list.append((now - self._last_update_time).total_seconds())
-            avg = sum(self._avg_update_interval_list) / len(self._avg_update_interval_list)
-            self.query_one("#update_interval", Label).update(f"{round(avg * 1000)} ms")
-
-        self._last_update_time = now
+    @on(Checkbox.Changed, "#checkbox_read_after_write")
+    def on_read_after_write_changed(self, changed: Checkbox.Changed):
+        self.app.readAfterWrite = changed.control.value
 
     @on(Checkbox.Changed, "#checkbox_cont_pollread")
     def on_checkbox_changed(self, changed: Checkbox.Changed):
-        self._update_read_write_btn_status()
-        if not self._pushMode:
-            self.query_one("#radio_set_freq").disabled = not changed.control.value
-            self._update_timer_hz()
-            assert self._update_timer is not None
-            if changed.control.value:
-                self._update_timer.resume()
-            else:
-                self._update_timer.pause()
-        else:
-            if changed.control.value:
-                self._update_push_loop()
-            else:
-                if self.app.register is not None:
-                    self.app.register.accessor.interrupt()
+        self.app.continuousRead = changed.control.value
 
     def on_radio_set_changed(self, changed: RadioSet.Changed) -> None:
-        self._update_timer_hz()
-
-    def _update_timer_hz(self, pause: bool = False) -> None:
         set = self.query_one("#radio_set_freq", RadioSet)
-        if self._update_timer is not None:
-            self._update_timer.stop()
         assert set.pressed_button is not None
         assert set.pressed_button.id is not None
         assert set.pressed_button.id.startswith("radio_hz_")
         hz = int(set.pressed_button.id[9:])
-        self._update_timer = self.set_interval(1 / hz, self._pressed_read, pause=pause)
+        self.app.continuousPollHz = hz
