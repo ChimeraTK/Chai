@@ -220,7 +220,7 @@ class DeviceView(Vertical):
 
     def compose(self) -> ComposeResult:
         yield Vertical(
-            DeviceList(),
+            DeviceList(id="device_list"),
             Vertical(
                 Label("Device status"),
                 Vertical(
@@ -247,3 +247,13 @@ class DeviceView(Vertical):
     @on(Button.Pressed, "#btn_open_close_device")
     def _pressed_open_close_device(self) -> None:
         self.app.isOpen = not self.app.isOpen
+
+    @on(Click)
+    def _on_double_click(self, event: Click) -> None:
+        if event.chain >= 2 and isinstance(event.widget, Label) and isinstance(event.widget.parent, ListItem):
+            item: ListItem | None = event.widget.parent
+            list = self.query_one("#device_list", DeviceList)
+            list.on_list_view_selected(ListView.Selected(list, item, list.index))
+            # TODO: bad devices should not result in a switch to register screen
+            if self.app.isOpen:
+                self.app.switch_screen("register")
