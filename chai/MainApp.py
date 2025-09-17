@@ -352,6 +352,8 @@ class LayoutApp(App):
                 register.accessor.read()
             except RuntimeError as e:
                 self.app.call_from_thread(self._update_push_single, e)
+            except da.ThreadInterrupted:
+                return
             self.app.call_from_thread(self._update_push_single)
 
     def _update_push_single(self, exception: RuntimeError | None = None) -> None:
