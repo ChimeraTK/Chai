@@ -1,5 +1,6 @@
 from collections import defaultdict
 from itertools import groupby
+from chai.ExceptionDialog import ExceptionDialog
 from textual.app import App, ComposeResult
 from textual.screen import Screen
 from textual.containers import Horizontal, Container
@@ -232,7 +233,7 @@ class LayoutApp(App):
         try:
             self.currentDevice = da.Device(new_alias)
         except RuntimeError as e:
-            self.notify(str(e), title=f"Error while creating device '{new_alias}'", severity="warning")
+            self.app.push_screen(ExceptionDialog(f"Error while creating device '{new_alias}'", e, False))
 
     def watch_isOpen(self, open: bool) -> None:
         if self.currentDevice is None:
@@ -241,6 +242,6 @@ class LayoutApp(App):
             try:
                 self.currentDevice.open()
             except RuntimeError as e:
-                self.notify(str(e), title=f"Error while opening device '{self.deviceAlias}'", severity="warning")
+                self.app.push_screen(ExceptionDialog(f"Error while opening device '{self.deviceAlias}'", e, False))
         else:
             self.currentDevice.close()
