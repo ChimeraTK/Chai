@@ -76,3 +76,30 @@ DmapView InputWithEnterAction {
 FooterKey.selected {
     text-style: bold reverse;
 }
+
+
+ExceptionDialog {
+    align: center middle;
+}
+#exception_dialog {
+    width: 60;
+    height: 17;
+    border: $error 80% round;
+    background: $surface;
+}
+#exception_dialog_title {
+    padding: 1 0;
+    width: 1fr;
+    align: center middle;
+    background: $error;
+}
+#exception_dialog_message {
+    padding: 1;
+    height: 5;
+}
+#exception_dialog_closed_info {
+    padding: 0 1;
+}
+#execption_dialog_buttons {
+    align: center middle;
+}

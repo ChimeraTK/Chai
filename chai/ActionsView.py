@@ -1,6 +1,7 @@
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from MainApp import LayoutApp
+from chai.ExceptionDialog import ExceptionDialog
 from textual.app import ComposeResult
 from textual.containers import Vertical
 from textual.widgets import Button, Label, Static, Checkbox, Button, RadioSet, RadioButton
@@ -98,8 +99,7 @@ class ActionsView(Vertical):
         try:
             self.app.register.accessor.readLatest()
         except RuntimeError as e:
-            self.notify(str(e), title="Error while reading from device", severity="warning")
-            self.app.isOpen = False
+            self.app.push_screen(ExceptionDialog("Error reading from device", e, True))
 
         self.app.registerValueChanged += 1  # value does not matter, change to inform subscribers about read
         self.query_one("#last_update_time", Label).update(str(datetime.now()))
@@ -111,8 +111,7 @@ class ActionsView(Vertical):
         try:
             self.app.register.accessor.write()
         except RuntimeError as e:
-            self.notify(str(e), title="Error while writing to device", severity="warning")
-            self.app.isOpen = False
+            self.app.push_screen(ExceptionDialog("Error while writing to device", e, True))
         if self.query_one("#checkbox_read_after_write", Checkbox).value:
             self._pressed_read()
 
@@ -135,8 +134,7 @@ class ActionsView(Vertical):
 
     def _update_push_single(self, exception: RuntimeError | None = None) -> None:
         if exception is not None:
-            self.notify(str(exception), title="Error while reading from device", severity="warning")
-            self.app.isOpen = False
+            self.app.push_screen(ExceptionDialog("Error while reading from device", exception, True))
             return
 
         now = datetime.now()
