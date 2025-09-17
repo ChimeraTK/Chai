@@ -1,6 +1,11 @@
-from collections import defaultdict
-from itertools import groupby
+from chai.DeviceView import DeviceView, DeviceProperties, DmapView
+from chai.RegisterView import RegisterView
+from chai.DataView import DataView
+from chai.ActionsView import ActionsView
+from chai.Utils import AccessorHolder
+from chai import Utils
 from chai.ExceptionDialog import ExceptionDialog
+
 from textual.app import App, ComposeResult
 from textual.screen import Screen
 from textual.containers import Horizontal, Container
@@ -10,20 +15,15 @@ from textual import log
 from textual.widgets import Static, Button
 from textual.widgets._footer import FooterKey, FooterLabel
 from textual.reactive import Reactive
+from textual import on, work
+from textual.worker import get_current_worker
+from textual.timer import Timer
 
-from textual.css import query
-from textual.widget import Widget
-
+from collections import defaultdict
+from datetime import datetime
+from itertools import groupby
 import socket
-
 import deviceaccess as da
-
-from chai.DeviceView import DeviceView, DeviceProperties, DmapView
-from chai.RegisterView import RegisterView
-from chai.DataView import DataView
-from chai.ActionsView import ActionsView
-
-from chai.Utils import AccessorHolder
 
 
 class ConsoleHardwareInterface(Container):
@@ -206,6 +206,8 @@ class LayoutApp(App):
             key="ctrl+o", priority=True, tooltip="Show Options", action="switch_screen('options')", description="Options Screen", group=SortedGroup("options", order=6)),
     ]
 
+    _update_timer: Timer | None = None
+
     dmapFilePath: Reactive[str | None] = Reactive(None)
 
     deviceAlias: Reactive[str | None] = Reactive(None)
@@ -214,10 +216,15 @@ class LayoutApp(App):
 
     isOpen: Reactive[bool] = Reactive(False)
 
+    registerPath: Reactive[str | None] = Reactive(None)
     register: Reactive[AccessorHolder | None] = Reactive(None)
-    registerValueChanged: Reactive[int] = Reactive(int)  # value does not matter, change informs about read operation
+    registerValueChanged: Reactive[datetime | None] = Reactive(None)  # value is timestamp of change
 
     channel: Reactive[int] = Reactive(0)
+    readAfterWrite: Reactive[bool] = Reactive(False)
+    continuousRead: Reactive[bool] = Reactive(False)
+    pushMode: bool
+    continuousPollHz: Reactive[float] = Reactive(1.)
 
     def on_mount(self) -> None:
         self.push_screen("device")
@@ -236,8 +243,16 @@ class LayoutApp(App):
             self.app.push_screen(ExceptionDialog(f"Error while creating device '{new_alias}'", e, False))
 
     def watch_isOpen(self, open: bool) -> None:
+        if self._update_timer is not None:
+            self._update_timer.stop()
+            self._update_timer = None
+
+        if self.pushMode and self.register is not None:
+            self.register.accessor.interrupt()
+
         if self.currentDevice is None:
             return
+
         if open:
             try:
                 self.currentDevice.open()
@@ -245,3 +260,104 @@ class LayoutApp(App):
                 self.app.push_screen(ExceptionDialog(f"Error while opening device '{self.deviceAlias}'", e, False))
         else:
             self.currentDevice.close()
+
+    def watch_registerPath(self, path: str | None) -> None:
+        if path is None or self.currentDevice is None:
+            self.register = None
+            return
+
+        rc = self.currentDevice.getRegisterCatalogue()
+        info = rc.getRegister(path)
+
+        dd = info.getDataDescriptor()
+        if dd.rawDataType().getAsString() != "unknown" and dd.rawDataType().getAsString() != "none":
+            # raw transfers are supported
+            np_type = Utils.get_raw_numpy_type(dd.rawDataType())
+            flags = [da.AccessMode.raw]
+        else:
+            # no raw transfer supported
+            np_type = Utils.get_raw_numpy_type(dd.minimumDataType())
+            flags = []
+
+        if da.AccessMode.wait_for_new_data in info.getSupportedAccessModes():
+            # we cannot use raw and wait_for_new_data at the same time
+            self.currentDevice.activateAsyncRead()
+            flags = [da.AccessMode.wait_for_new_data]
+
+        if info.getDataDescriptor().fundamentalType() != da.FundamentalType.nodata:
+            accessor = self.currentDevice.getTwoDRegisterAccessor(
+                np_type, info.getRegisterName(), accessModeFlags=flags)
+        else:
+            accessor = self.currentDevice.getVoidRegisterAccessor(
+                info.getRegisterName(), accessModeFlags=flags)
+
+        self.register = AccessorHolder(accessor, info)
+
+    @on(Button.Pressed, "#btn_read")
+    def _pressed_read(self) -> None:
+        if self.register is None or not self.isOpen:
+            return
+        try:
+            self.register.accessor.readLatest()
+        except RuntimeError as e:
+            self.push_screen(ExceptionDialog("Error reading from device", e, True))
+
+        self.registerValueChanged = datetime.now()
+
+    @on(Button.Pressed, "#btn_write")
+    def _pressed_write(self) -> None:
+        if self.register is None or not self.isOpen:
+            return
+        try:
+            self.register.accessor.write()
+        except RuntimeError as e:
+            self.push_screen(ExceptionDialog("Error while writing to device", e, True))
+        if self.readAfterWrite:
+            self._pressed_read()
+
+    def watch_continuousRead(self, continuousRead) -> None:
+        if not self.pushMode:
+            self.watch_continuousPollHz(self.continuousPollHz)
+            assert self._update_timer is not None
+            if continuousRead:
+                self._update_timer.resume()
+            else:
+                self._update_timer.pause()
+        else:
+            if continuousRead:
+                self._update_push_loop()
+            else:
+                if self.register is not None:
+                    self.register.accessor.interrupt()
+
+    def watch_continuousPollHz(self, hz) -> None:
+        if self._update_timer is not None:
+            self._update_timer.stop()
+        self._update_timer = self.set_interval(1 / hz, self._pressed_read)
+
+    def watch_register(self,  old_register: AccessorHolder, new_register: AccessorHolder) -> None:
+        if self._update_timer is not None:
+            self._update_timer.stop()
+            self._update_timer = None
+
+        if self.pushMode:
+            old_register.accessor.interrupt()
+
+    @work(exclusive=True, thread=True)
+    def _update_push_loop(self) -> None:
+        worker = get_current_worker()
+        register = self.register
+        while not worker.is_cancelled and register is not None:
+            try:
+                register.accessor.read()
+            except RuntimeError as e:
+                self.app.call_from_thread(self._update_push_single, e)
+            self.app.call_from_thread(self._update_push_single)
+
+    def _update_push_single(self, exception: RuntimeError | None = None) -> None:
+        if exception is not None:
+            self.app.push_screen(ExceptionDialog("Error while reading from device", exception, True))
+            return
+
+        now = datetime.now()
+        self.registerValueChanged = now
