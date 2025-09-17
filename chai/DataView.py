@@ -1,6 +1,7 @@
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from MainApp import LayoutApp
+from chai.ExceptionDialog import ExceptionDialog
 from textual.app import ComposeResult
 from textual.screen import ModalScreen
 from textual.containers import Horizontal, Vertical, Container, Grid
@@ -94,8 +95,7 @@ class RegisterValueField(ScrollableContainer):
                 try:
                     register.accessor.readLatest()
                 except RuntimeError as e:
-                    self.notify(str(e), title="Error while reading from device", severity="warning")
-                    self.app.isOpen = False
+                    self.app.push_screen(ExceptionDialog("Error reading from device", e, True))
         self.app.channel = 0
         self.update()
 
@@ -104,8 +104,7 @@ class RegisterValueField(ScrollableContainer):
             try:
                 self.app.register.accessor.readLatest()
             except RuntimeError as e:
-                self.notify(str(e), title="Error while reading from device", severity="warning")
-                self.app.isOpen = False
+                self.app.push_screen(ExceptionDialog("Error while reading from device", e, False))
         self.update()
 
     def on_key(self, event: events.Key) -> None:
