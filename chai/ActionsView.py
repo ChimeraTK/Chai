@@ -55,8 +55,6 @@ class ActionsView(Vertical):
     def update(self) -> None:
         self.app.pushMode = self.app.register is not None and    \
             da.AccessMode.wait_for_new_data in self.app.register.accessor.getAccessModeFlags()
-        self.app.continuousRead = False
-        self.app.continuousPollHz = 1.
 
         register = self.app.register
         disableRead = True if register is None or not self.app.isOpen else not register.accessor.isReadable()
@@ -64,9 +62,12 @@ class ActionsView(Vertical):
 
         self.query_one("#btn_read", Button).disabled = disableRead
         self.query_one("#btn_write", Button).disabled = disableWrite
-        self.query_one("#checkbox_cont_pollread", Checkbox).disabled = disableRead
+
         self.query_one("#label_ctn_pollread", Label).update(
             "Continuous Read" if self.app.pushMode else "Continuous Poll")
+        self.query_one("#checkbox_cont_pollread", Checkbox).disabled = disableRead
+        self.query_one("#checkbox_cont_pollread", Checkbox).value = False
+        self.app.continuousRead = False
 
         self.query_one("#label_poll_update_frq", Label).visible = not self.app.pushMode
         self.query_one("#radio_set_freq", RadioSet).visible = not self.app.pushMode
