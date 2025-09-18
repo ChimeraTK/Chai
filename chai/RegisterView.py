@@ -1,10 +1,13 @@
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from MainApp import LayoutApp
+from chai.Utils import InputWithEnterAction
 from textual.app import ComposeResult
-from textual.containers import Horizontal, Vertical
+from textual.containers import Horizontal, Vertical, Container
 from textual.widgets import Button, Label, Tree, Input, Checkbox, Button, Input
 from textual import log, on
+from textual.reactive import Reactive
+from textual.validation import Validator, ValidationResult
 
 from chai.DataView import RegisterValueField
 from chai.ActionsView import ActionsView
@@ -12,6 +15,7 @@ from chai.ActionsView import ActionsView
 from chai import Utils
 
 import deviceaccess as da
+import re
 
 from chai.Utils import AccessorHolder
 
@@ -20,6 +24,7 @@ class RegisterTree(Tree):
 
     _tree: Tree[dict] = Tree("Registers")
     _register_names = []
+    regExPattern: Reactive[str] = Reactive("")
     if TYPE_CHECKING:
         app: LayoutApp
 
@@ -49,8 +54,11 @@ class RegisterTree(Tree):
                 if not node_added:
                     current_level = current_level.add(split_name[0])
                 split_name = split_name[1:]
-
-            current_level.add_leaf(split_name[0])
+            finalPart: str = split_name[0]
+            # pattern: re.Pattern = re.compile(self.regExPattern)  # Just to check if it's a valid regex
+            match = re.match(self.regExPattern, finalPart)
+            if len(self.regExPattern) == 0 or match:
+                current_level.add_leaf(split_name[0])
 
     def compose(self) -> ComposeResult:
         self._tree.root.expand()
@@ -75,27 +83,32 @@ class RegisterTree(Tree):
 
         self.app.registerPath = currentRegisterPath
 
+    def watch_regExPattern(self, value: str) -> None:
+        if self.app.currentDevice is None:
+            return
+        self.on_device_changed(self.app.currentDevice)
+
 
 class RegisterView(Vertical):
     def compose(self) -> ComposeResult:
-        yield Vertical(
+        yield Container(
             RegisterTree("Registers"),
-            Vertical(
-                Label("Find Module", classes="label"),
-                Input(),
-            ),
-            Horizontal(
-                Vertical(
-                    Checkbox("Autoselect previous register"),
-                    Button("Collapse all", id="btn_collapse"),
-                ),
-                Vertical(
-                    Checkbox("Sort registers"),
-                    Button("Expand all", id="btn_expand"),
-                ),
+            Container(
+                InputWithEnterAction(id="regex_input", placeholder="Regex to filter registers",
+                                     action=self.refreshTree, validators=[RegExValidator()], compact=False),
+                Checkbox("Autoselect previous register", compact=True),
+                Checkbox("Sort registers", compact=True),
+                Button("Collapse all", id="btn_collapse"),
+                Button("Expand all", id="btn_expand"),
+
+                classes="RegisterViewControls"
             ),
             id="registers",
             classes="main_col")
+
+    def refreshTree(self) -> None:
+        rt = self.query_one(RegisterTree)
+        rt.refresh()
 
     @on(Button.Pressed, "#btn_collapse")
     def _pressed_collapse(self) -> None:
@@ -106,3 +119,24 @@ class RegisterView(Vertical):
     def _pressed_expand(self) -> None:
         rt = self.query_one(RegisterTree)
         rt._tree.root.expand_all()
+
+    @on(Input.Changed, "#regex_input")
+    def _regex_changed(self, event: Input.Changed) -> None:
+        if not event.validation_result:
+            return
+        if not event.validation_result.is_valid:
+            self.notify("Invalid regex pattern.", severity="error")
+            return
+        rt = self.query_one(RegisterTree)
+        inp = self.query_one("#regex_input", InputWithEnterAction)
+        rt.regExPattern = inp.value
+        self._pressed_expand()
+
+
+class RegExValidator(Validator):
+    def validate(self, value: str) -> ValidationResult:
+        try:
+            re.compile(value)
+            return self.success()
+        except re.error:
+            return self.failure("Invalid regex pattern.")
