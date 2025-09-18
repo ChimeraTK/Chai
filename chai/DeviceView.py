@@ -12,10 +12,11 @@ from textual import on, log
 import deviceaccess as da
 
 from chai.RegisterView import RegisterTree
+from chai.Utils import InputWithEnterAction
 
 import os
 import sys
-from collections.abc import Callable, Iterator
+from collections.abc import Iterator
 
 
 class DeviceList(ListView):
@@ -94,18 +95,6 @@ class DeviceProperties(Vertical):
 
         self.watch(self.app, "deviceCdd", lambda cdd: self.query_one(
             "#field_device_identifier", Label).update(cdd or ""))
-
-
-class InputWithEnterAction(Input):
-    action: Callable[[], None] = lambda: None
-
-    def __init__(self, *args, **kwargs):
-        self.action = kwargs.pop("action", None)
-        super().__init__(*args, **kwargs)
-
-    def _key_enter(self, key) -> None:
-        if key.key == "enter":
-            self.action()
 
 
 class DmapTree(DirectoryTree):

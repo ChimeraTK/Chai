@@ -62,7 +62,28 @@ DmapTree {
     min-height: 20%;
 }
 
-DmapView .small_row {
+RegisterView {
+    RegisterTree {
+        height: auto;
+        width: 1fr;
+        max-height: 40vh;
+    }
+    RegisterViewControls {
+        InputWithEnterAction {
+            width: 40w;
+            height: auto;
+        }
+        layout: vertical;
+        height: auto;
+        width: 1fr;
+        align: left middle;
+        margin: 1;
+        min-height: 10vh;
+    }
+
+}
+
+.small_row {
         layout: horizontal;
         align: right middle;
         height: auto;
