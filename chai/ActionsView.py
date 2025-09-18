@@ -56,16 +56,13 @@ class ActionsView(Vertical):
         self.app.pushMode = self.app.register is not None and    \
             da.AccessMode.wait_for_new_data in self.app.register.accessor.getAccessModeFlags()
 
-        register = self.app.register
-        disableRead = True if register is None or not self.app.isOpen else not register.accessor.isReadable()
-        disableWrite = True if register is None or not self.app.isOpen else not register.accessor.isWriteable()
-
-        self.query_one("#btn_read", Button).disabled = disableRead
-        self.query_one("#btn_write", Button).disabled = disableWrite
+        self.query_one("#btn_read", Button).disabled = not self.app.enableReadButton
+        self.query_one("#btn_write", Button).disabled = not self.app.enableWriteButton
+        self.query_one("#btn_write", Button).label = "Write" if not self.app.dummyWrite else "Write (dummy)"
 
         self.query_one("#label_ctn_pollread", Label).update(
             "Continuous Read" if self.app.pushMode else "Continuous Poll")
-        self.query_one("#checkbox_cont_pollread", Checkbox).disabled = disableRead
+        self.query_one("#checkbox_cont_pollread", Checkbox).disabled = not self.app.enableReadButton
         self.query_one("#checkbox_cont_pollread", Checkbox).value = False
         self.app.continuousRead = False
 
