@@ -1,5 +1,7 @@
 import numpy as np
 import deviceaccess as da
+from textual.widgets import Input
+from collections.abc import Callable
 
 
 def get_raw_numpy_type(raw_type):
@@ -33,3 +35,15 @@ class AccessorHolder:
     accessor: da.GeneralRegisterAccessor
     dummyWriteAccessor: da.GeneralRegisterAccessor | None
     info: da.pb.RegisterInfo
+
+
+class InputWithEnterAction(Input):
+    action: Callable[[], None] = lambda: None
+
+    def __init__(self, *args, **kwargs):
+        self.action = kwargs.pop("action", None)
+        super().__init__(*args, **kwargs)
+
+    def _key_enter(self, key) -> None:
+        if key.key == "enter":
+            self.action()
