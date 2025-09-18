@@ -55,8 +55,7 @@ class RegisterTree(Tree):
                     current_level = current_level.add(split_name[0])
                 split_name = split_name[1:]
             finalPart: str = split_name[0]
-            # pattern: re.Pattern = re.compile(self.regExPattern)  # Just to check if it's a valid regex
-            match = re.match(self.regExPattern, finalPart)
+            match = re.search(self.regExPattern, finalPart, flags=re.IGNORECASE)
             if len(self.regExPattern) == 0 or match:
                 current_level.add_leaf(split_name[0])
 
@@ -136,7 +135,7 @@ class RegisterView(Vertical):
 class RegExValidator(Validator):
     def validate(self, value: str) -> ValidationResult:
         try:
-            re.compile(value)
+            re.compile(value, flags=re.IGNORECASE)
             return self.success()
         except re.error:
             return self.failure("Invalid regex pattern.")
