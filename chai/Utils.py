@@ -25,8 +25,11 @@ def build_data_type_string(data_desriptor) -> str:
 
 
 class AccessorHolder:
-    def __init__(self, accessor: da.GeneralRegisterAccessor, info: da.pb.RegisterInfo):
+    def __init__(self, accessor: da.GeneralRegisterAccessor, info: da.pb.RegisterInfo,
+                 dummyWriteAccessor: da.GeneralRegisterAccessor | None):
         self.accessor = accessor
+        self.dummyWriteAccessor = dummyWriteAccessor
         self.info = info
     accessor: da.GeneralRegisterAccessor
+    dummyWriteAccessor: da.GeneralRegisterAccessor | None
     info: da.pb.RegisterInfo

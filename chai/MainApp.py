@@ -223,7 +223,10 @@ class LayoutApp(App):
     channel: Reactive[int] = Reactive(0)
     readAfterWrite: Reactive[bool] = Reactive(False)
     continuousRead: Reactive[bool] = Reactive(False)
-    pushMode: bool
+    pushMode: bool = False
+    dummyWrite: bool = False
+    enableReadButton: bool = False
+    enableWriteButton: bool = False
     continuousPollHz: Reactive[float] = Reactive(1.)
 
     def on_mount(self) -> None:
@@ -237,6 +240,7 @@ class LayoutApp(App):
         # self.push_screen(MainScreen()) # uncomment to see the original layout with all views visible
 
     def watch_deviceAlias(self, new_alias: str) -> None:
+        self.registerPath = None
         try:
             self.currentDevice = da.Device(new_alias)
         except RuntimeError as e:
@@ -256,10 +260,13 @@ class LayoutApp(App):
         if open:
             try:
                 self.currentDevice.open()
+                self.watch_registerPath(self.registerPath)
             except RuntimeError as e:
                 self.app.push_screen(ExceptionDialog(f"Error while opening device '{self.deviceAlias}'", e, False))
         else:
             self.currentDevice.close()
+            self.enableReadButton = False
+            self.enableWriteButton = False
 
     def watch_registerPath(self, path: str | None) -> None:
         if path is None or self.currentDevice is None:
@@ -284,14 +291,28 @@ class LayoutApp(App):
             self.currentDevice.activateAsyncRead()
             flags = [da.AccessMode.wait_for_new_data]
 
-        if info.getDataDescriptor().fundamentalType() != da.FundamentalType.nodata:
-            accessor = self.currentDevice.getTwoDRegisterAccessor(
-                np_type, info.getRegisterName(), accessModeFlags=flags)
-        else:
-            accessor = self.currentDevice.getVoidRegisterAccessor(
-                info.getRegisterName(), accessModeFlags=flags)
+        dummyWritePath = path+".DUMMY_WRITEABLE"
+        self.dummyWrite = not info.isWriteable() and rc.hasRegister(dummyWritePath)
 
-        self.register = AccessorHolder(accessor, info)
+        if self.isOpen:
+            self.enableReadButton = info.isReadable()
+            self.enableWriteButton = info.isWriteable() or self.dummyWrite
+
+        dummyWriteAccessor = None
+        if info.getDataDescriptor().fundamentalType() != da.FundamentalType.nodata:
+            accessor = self.currentDevice.getTwoDRegisterAccessor(np_type, path, accessModeFlags=flags)
+            if self.dummyWrite:
+                dummyWriteAccessor = self.currentDevice.getTwoDRegisterAccessor(
+                    np_type, dummyWritePath, accessModeFlags=flags)
+        else:
+            accessor = self.currentDevice.getVoidRegisterAccessor(path, accessModeFlags=flags)
+            if self.dummyWrite:
+                dummyWriteAccessor = self.currentDevice.getVoidRegisterAccessor(
+                    dummyWritePath, accessModeFlags=flags)
+
+            path += ".DUMMY_WRITEABLE"
+
+        self.register = AccessorHolder(accessor, info, dummyWriteAccessor)
 
     @on(Button.Pressed, "#btn_read")
     def _pressed_read(self) -> None:
@@ -309,7 +330,10 @@ class LayoutApp(App):
         if self.register is None or not self.isOpen:
             return
         try:
-            self.register.accessor.write()
+            if self.register.dummyWriteAccessor is None:
+                self.register.accessor.write()
+            else:
+                self.register.dummyWriteAccessor.write()
         except RuntimeError as e:
             self.push_screen(ExceptionDialog("Error while writing to device", e, True))
         if self.readAfterWrite:
