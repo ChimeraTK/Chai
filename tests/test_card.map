@@ -1,6 +1,6 @@
 @META_DATA_TEST 0.1.0-1-test
 
-# name                               nr of elements       address          size           bar    width   fracbits    signed   
+# name                               nr of elements       address          size           bar    width   fracbits    signed
 FLOAT32_TEST.SCALAR                    0x00000001    0x00000000    0x00000004    0x00000001       32   IEEE754            1
 FLOAT32_TEST.1DARRAY                   0x00000004    0x00000004    0x00000010    0x00000001       32   IEEE754            1
 
@@ -27,7 +27,7 @@ INT32_TEST.SEQUENCE_2DARRAY_2                 1     0x08          4      0x2  32
 ASYNC.TEST_AREA_PUSH              0x0000000A    0x00000028    0x00000028    0x00000001       32         0        1  INTERRUPT2
 ASYNC.DATA_READY                  0x00000000    0x00000000    0x00000000    0x00000000        0         0        0  INTERRUPT2
 
-ASYNC.SCALAR                      0x00000001    0x000000CC    0x00000004    0x00000001       32         0         1 
+ASYNC.SCALAR                      0x00000001    0x000000CC    0x00000004    0x00000001       32         0         1
 ASYNC.SCALAR_PUSH                 0x00000001    0x000000CC    0x00000004    0x00000001       32         0         1 INTERRUPT2
 
 RW_TEST.SCALAR                    0x00000001    0x00000012    0x00000004    0x00000001       32         0         1 RW
@@ -35,3 +35,4 @@ RO_TEST.SCALAR                    0x00000001    0x00000012    0x00000004    0x00
 WO_TEST.SCALAR                    0x00000001    0x00000012    0x00000004    0x00000001       32         0         1 WO
 
 TOP_LEVEL_SCALAR                  0x00000001    0x00000012    0x00000004    0x00000001       32         0         1 RW
+SOME.DEEP.HIERARCHY.WITH.A.STRANGELY.LONG.REGISTER.NAME  0x00000001    0x00000012    0x00000004    0x00000001       32         0         1 RW
