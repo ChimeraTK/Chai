@@ -32,10 +32,7 @@ class ActionsView(Vertical):
             # Button("Show plot", id="btn_show_plot")
         )
         yield Label("Operations")
-        yield Vertical(
-            Button("Read", disabled=True, id="btn_read"),
-            Button("Write", disabled=True, id="btn_write"),
-        )
+
         yield Label("(placeholder)", id="label_ctn_pollread")
         yield Vertical(
             Checkbox("enabled", id="checkbox_cont_pollread", value=False, disabled=True),
@@ -56,10 +53,6 @@ class ActionsView(Vertical):
         self.app.pushMode = self.app.register is not None and    \
             da.AccessMode.wait_for_new_data in self.app.register.accessor.getAccessModeFlags()
 
-        self.query_one("#btn_read", Button).disabled = not self.app.enableReadButton
-        self.query_one("#btn_write", Button).disabled = not self.app.enableWriteButton
-        self.query_one("#btn_write", Button).label = "Write" if not self.app.dummyWrite else "Write (dummy)"
-
         self.query_one("#label_ctn_pollread", Label).update(
             "Continuous Read" if self.app.pushMode else "Continuous Poll")
         self.query_one("#checkbox_cont_pollread", Checkbox).disabled = not self.app.enableReadButton
@@ -77,7 +70,6 @@ class ActionsView(Vertical):
         self.watch(self.app, "isOpen", lambda open: self.update())
 
         self.watch(self.app, "registerValueChanged", lambda old, new: self.on_registerValueChanged(old, new))
-        self.watch(self.app, "continuousRead", lambda cr: self._update_read_write_btn_status())
 
         self.update()
 
@@ -92,14 +84,6 @@ class ActionsView(Vertical):
     def on_unmount(self):
         if self.app.pushMode and self.app.register is not None:
             self.app.register.accessor.interrupt()
-
-    def _update_read_write_btn_status(self):
-        pollread = self.query_one("#checkbox_cont_pollread", Checkbox)
-        if self.app.register is not None:
-            self.query_one("#btn_read").disabled = (pollread.value or not self.app.register.accessor.isReadable())
-            self.query_one("#btn_write").disabled = (pollread.value or not self.app.register.accessor.isWriteable())
-        if not self.app.pushMode:
-            self.query_one("#radio_set_freq").disabled = not self.app.continuousRead
 
     @on(Checkbox.Changed, "#checkbox_read_after_write")
     def on_read_after_write_changed(self, changed: Checkbox.Changed):
