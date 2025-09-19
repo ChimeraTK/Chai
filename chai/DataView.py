@@ -168,7 +168,6 @@ class RegisterValueField(ScrollableContainer):
 
 
 class RegisterInfo(Grid):
-    _nChannels: int = 0
     if TYPE_CHECKING:
         app: LayoutApp
 
@@ -185,12 +184,9 @@ class RegisterInfo(Grid):
         yield Static("", id="label_data_type")
         yield Label("wait_for_new_data")
         yield Static("", id="label_wait_for_new_data")
-        yield Label("Channel:")
-        yield Input(value="0", placeholder="0", id="channel_input", type="integer")
 
     def on_mount(self):
         self.watch(self.app, "register", lambda register: self.on_regster_info_changed(register))
-        self.watch(self.app, "channel", lambda channel: self.on_channel_changed(channel))
 
     def on_regster_info_changed(self, register: AccessorHolder):
         if register is None:
@@ -199,7 +195,6 @@ class RegisterInfo(Grid):
         self.query_one("#field_register_path", Static).update(info.getRegisterName())
         self.query_one("#label_nELements", Static).update(str(info.getNumberOfElements()))
         self.query_one("#label_nChannels", Static).update(str(info.getNumberOfChannels()))
-        self._nChannels = info.getNumberOfChannels()
 
         dd = info.getDataDescriptor()
         self.query_one("#label_data_type", Static).update(Utils.build_data_type_string(dd))
@@ -209,21 +204,6 @@ class RegisterInfo(Grid):
             self.query_one("#label_dimensions", Static).update("1D")
         elif info.getNumberOfDimensions() == 2:
             self.query_one("#label_dimensions", Static).update("2D")
-
-    def on_channel_changed(self, channel: int) -> None:
-        self.query_one("#channel_input", Input).value = str(channel)
-
-    def on_input_submitted(self, change: Input.Submitted) -> None:
-        if change.value.isdigit():
-            value = int(change.value)
-        else:
-            # might be empty...
-            value = 0
-        if value >= self._nChannels:
-            value = self._nChannels - 1
-            change.input.value = str(value)
-            self.notify("Channel out of range.", severity="warning")
-        self.app.channel = value
 
 
 class DataView(Vertical):
