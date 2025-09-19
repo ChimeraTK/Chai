@@ -80,6 +80,13 @@ RegisterView {
         margin: 1;
         min-height: 10vh;
     }
+    Horizontal {
+        padding: 1;
+
+        .left_pane {
+            margin-right: 1;
+        }
+    }
 
 }
 
