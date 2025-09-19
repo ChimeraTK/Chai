@@ -1,6 +1,6 @@
 from chai.DeviceView import DeviceView, DeviceProperties, DmapView
 from chai.RegisterView import RegisterView
-from chai.DataView import DataView
+from chai.DataView import DataView, RegisterInfo
 from chai.ActionsView import ActionsView
 from chai.Utils import AccessorHolder
 from chai import Utils
@@ -142,7 +142,8 @@ class RegisterScreen(Screen):
 class MetaDataScreen(Screen):
 
     def compose(self) -> ComposeResult:
-        yield Static("This is the MetaData screen")
+        yield Header()
+        yield RegisterInfo()
         yield NaviFooter(currentScreen="meta")
 
 
@@ -200,8 +201,8 @@ class LayoutApp(App):
             key="ctrl+r", priority=True, tooltip="Show Register Tree", action="switch_screen('register')", description="Device Register Screen", group=SortedGroup("registers", order=3)),
         Binding(
             key="ctrl+e", priority=True, tooltip="Show Register Meta Data", action="switch_screen('metadata')", description="Register Metadata Screen", group=SortedGroup("meta", order=4)),
-        Binding(
-            key="ctrl+a", priority=True, tooltip="Show Register Content", action="switch_screen('content')", description="Register Content Screen", group=SortedGroup("content", order=5)),
+        # Binding(
+        #    key="ctrl+a", priority=True, tooltip="Show Register Content", action="switch_screen('content')", description="Register Content Screen", group=SortedGroup("content", order=5)),
         Binding(
             key="ctrl+o", priority=True, tooltip="Show Options", action="switch_screen('options')", description="Options Screen", group=SortedGroup("options", order=6)),
     ]
@@ -224,6 +225,8 @@ class LayoutApp(App):
     readAfterWrite: Reactive[bool] = Reactive(False)
     continuousRead: Reactive[bool] = Reactive(False)
     sortedRegisters: bool = False
+    autoSelectPreviousRegister: bool = True
+    previouslySelectedRegister: str | None = None
     pushMode: bool = False
     dummyWrite: bool = False
     enableReadButton: bool = False
@@ -235,7 +238,7 @@ class LayoutApp(App):
         # self.push_screen("properties") # currently not useful
         self.push_screen("register")
         self.push_screen("metadata")
-        self.push_screen("content")
+        # self.push_screen("content")
         self.push_screen("options")
         self.push_screen("dmap")
         # self.push_screen(MainScreen()) # uncomment to see the original layout with all views visible
