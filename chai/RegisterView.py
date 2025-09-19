@@ -86,10 +86,10 @@ class RegisterTree(Tree):
         if selected.node.is_root:
             return
 
-        currentRegisterPath = selected.node.label
+        currentRegisterPath = f"/{selected.node.label}"
         parent = selected.node.parent
         while not parent.is_root:
-            currentRegisterPath = f"/{parent.label}/{currentRegisterPath}"
+            currentRegisterPath = f"/{parent.label}{currentRegisterPath}"
             parent = parent.parent
 
         if currentRegisterPath not in self._register_names:
