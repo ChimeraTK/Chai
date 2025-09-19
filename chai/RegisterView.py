@@ -41,9 +41,18 @@ class RegisterTree(Tree):
         register_names = []
         for reg in device.getRegisterCatalogue():
             register_names.append(reg.getRegisterName())
-
         self._register_names = register_names
-        for reg_name in register_names:
+        self.updateTree()
+
+    def updateTree(self) -> None:
+        self._tree.clear()
+        if self.app.currentDevice is None:
+            return
+
+        if self.app.sortedRegisters:
+            self._register_names.sort()
+
+        for reg_name in self._register_names:
             match = re.search(self.regExPattern, reg_name, flags=re.IGNORECASE)
             if len(self.regExPattern) > 0 and not match:
                 continue
@@ -103,7 +112,7 @@ class RegisterView(Vertical):
                     InputWithEnterAction(id="regex_input", placeholder="Regex to filter registers",
                                          action=self.checkRegexAndrefreshTree, validators=[RegExValidator()], compact=False),
                     Checkbox("Autoselect previous register", compact=True),
-                    Checkbox("Sort registers", compact=True),
+                    Checkbox("Sort registers", compact=True, id="checkbox_sort_registers"),
                     Button("Collapse all", id="btn_collapse"),
                     Button("Expand all", id="btn_expand"),
 
@@ -125,6 +134,7 @@ class RegisterView(Vertical):
         self.query_one("#btn_read", Button).disabled = not self.app.enableReadButton
         self.query_one("#btn_write", Button).disabled = not self.app.enableWriteButton
         self.query_one("#btn_write", Button).label = "Write" if not self.app.dummyWrite else "Write (dummy)"
+        self.query_one("#checkbox_sort_registers", Checkbox).value = self.app.sortedRegisters
         self.watch(self.app, "continuousRead", lambda cr: self._update_read_write_btn_status())
         self.watch(self.app, "isOpen", lambda cr: self._update_read_write_btn_status())
         self.watch(self.app, "register", lambda cr: self._update_read_write_btn_status())
@@ -163,6 +173,12 @@ class RegisterView(Vertical):
         inp = self.query_one("#regex_input", InputWithEnterAction)
         rt.regExPattern = inp.value
         self._pressed_expand()
+
+    @on(Checkbox.Changed, "#checkbox_sort_registers")
+    def _checkbox_sort_changed(self, changed: Checkbox.Changed) -> None:
+        self.app.sortedRegisters = changed.control.value
+        rt = self.query_one(RegisterTree)
+        rt.updateTree()
 
 
 class RegExValidator(Validator):

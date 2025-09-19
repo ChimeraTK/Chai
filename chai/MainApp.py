@@ -223,6 +223,7 @@ class LayoutApp(App):
     channel: Reactive[int] = Reactive(0)
     readAfterWrite: Reactive[bool] = Reactive(False)
     continuousRead: Reactive[bool] = Reactive(False)
+    sortedRegisters: bool = False
     pushMode: bool = False
     dummyWrite: bool = False
     enableReadButton: bool = False
