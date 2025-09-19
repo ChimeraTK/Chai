@@ -91,6 +91,9 @@ class RegisterTree(Tree):
 
 
 class RegisterView(Vertical):
+    if TYPE_CHECKING:
+        app: LayoutApp
+
     def compose(self) -> ComposeResult:
         yield Horizontal(
             Container(
@@ -122,6 +125,8 @@ class RegisterView(Vertical):
         self.query_one("#btn_write", Button).disabled = not self.app.enableWriteButton
         self.query_one("#btn_write", Button).label = "Write" if not self.app.dummyWrite else "Write (dummy)"
         self.watch(self.app, "continuousRead", lambda cr: self._update_read_write_btn_status())
+        self.watch(self.app, "isOpen", lambda cr: self._update_read_write_btn_status())
+        self.watch(self.app, "register", lambda cr: self._update_read_write_btn_status())
 
     def checkRegexAndrefreshTree(self) -> None:
         rt = self.query_one(RegisterTree)
