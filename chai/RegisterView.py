@@ -1,4 +1,6 @@
 from typing import TYPE_CHECKING
+
+from textual.events import Mount
 if TYPE_CHECKING:
     from MainApp import LayoutApp
 from chai.Utils import InputWithEnterAction
@@ -90,24 +92,53 @@ class RegisterTree(Tree):
 
 class RegisterView(Vertical):
     def compose(self) -> ComposeResult:
-        yield Container(
-            RegisterTree("Registers"),
+        yield Horizontal(
             Container(
-                InputWithEnterAction(id="regex_input", placeholder="Regex to filter registers",
-                                     action=self.refreshTree, validators=[RegExValidator()], compact=False),
-                Checkbox("Autoselect previous register", compact=True),
-                Checkbox("Sort registers", compact=True),
-                Button("Collapse all", id="btn_collapse"),
-                Button("Expand all", id="btn_expand"),
+                RegisterTree("Registers"),
+                Container(
+                    InputWithEnterAction(id="regex_input", placeholder="Regex to filter registers",
+                                         action=self.checkRegexAndrefreshTree, validators=[RegExValidator()], compact=False),
+                    Checkbox("Autoselect previous register", compact=True),
+                    Checkbox("Sort registers", compact=True),
+                    Button("Collapse all", id="btn_collapse"),
+                    Button("Expand all", id="btn_expand"),
 
-                classes="RegisterViewControls"
-            ),
-            id="registers",
-            classes="main_col")
+                    classes="RegisterViewControls"
+                ),
+                id="registers",
+                classes="left_pane"),
+            Container(
+                RegisterValueField(id="register_value_field"),
+                Vertical(
+                    Button("Read", disabled=True, id="btn_read"),
+                    Button("Write", disabled=True, id="btn_write"),
+                ),
+                id="register_content",
+                classes="right_pane"),
+        )
 
-    def refreshTree(self) -> None:
+    def on_mount(self, event: Mount) -> None:
+        self.query_one("#btn_read", Button).disabled = not self.app.enableReadButton
+        self.query_one("#btn_write", Button).disabled = not self.app.enableWriteButton
+        self.query_one("#btn_write", Button).label = "Write" if not self.app.dummyWrite else "Write (dummy)"
+        self.watch(self.app, "continuousRead", lambda cr: self._update_read_write_btn_status())
+
+    def checkRegexAndrefreshTree(self) -> None:
         rt = self.query_one(RegisterTree)
         rt.refresh()
+
+    def _update_read_write_btn_status(self):
+        if self.app.register is not None:
+            self.query_one("#btn_read").disabled = (
+                # self.app.continuousRead or
+                not self.app.register.accessor.isReadable())
+            self.query_one("#btn_write").disabled = (
+                # self.app.continuousRead or
+                not self.app.register.accessor.isWriteable())
+        if not self.app.pushMode:
+            # todo reconnect with pollread
+            pass
+            # self.query_one("#radio_set_freq").disabled = not self.app.continuousRead
 
     @on(Button.Pressed, "#btn_collapse")
     def _pressed_collapse(self) -> None:
