@@ -38,8 +38,9 @@ class ActionsView(Vertical):
             Checkbox("enabled", id="checkbox_cont_pollread", value=False, disabled=True),
             Label("Poll frequency", id="label_poll_update_frq"),
             RadioSet(
-                RadioButton("1 Hz", value=True, id="radio_hz_1"),
-                RadioButton("100 Hz", id="radio_hz_100"),
+                RadioButton("1 Hz", value=False, id="radio_hz_1"),
+                RadioButton("30 Hz", value=True, id="radio_hz_30"),
+                RadioButton("100 Hz", value=False, id="radio_hz_100"),
                 disabled=True,
                 id="radio_set_freq"
             ),
@@ -61,6 +62,7 @@ class ActionsView(Vertical):
 
         self.query_one("#label_poll_update_frq", Label).visible = not self.app.pushMode
         self.query_one("#radio_set_freq", RadioSet).visible = not self.app.pushMode
+        self.query_one("#radio_set_freq", RadioSet).disabled = True
 
         self.query_one("#label_last_poll_update", Label).update(
             "Last update time" if self.app.pushMode else "Last poll time")
@@ -70,8 +72,12 @@ class ActionsView(Vertical):
         self.watch(self.app, "isOpen", lambda open: self.update())
 
         self.watch(self.app, "registerValueChanged", lambda old, new: self.on_registerValueChanged(old, new))
-
+        self.watch(self.app, "continuousRead", self.updateRadioSetFrqButtons)
         self.update()
+
+    def updateRadioSetFrqButtons(self) -> None:
+        if not self.app.pushMode:
+            self.query_one("#radio_set_freq").disabled = not self.app.continuousRead
 
     def on_registerValueChanged(self, old_time: datetime, new_time: datetime):
         self.query_one("#last_update_time", Label).update(str(new_time))
