@@ -28,14 +28,15 @@ class ActionsView(Vertical):
 
         yield Label("Options")
         yield Vertical(
-            Checkbox("Read after write", id="checkbox_read_after_write"),
-            # Button("Show plot", id="btn_show_plot")
+            Checkbox("Read after write",  compact=True, id="checkbox_read_after_write"),
+            Checkbox("Autoselect previous register", compact=True, id="checkbox_autoselect"),
+            Checkbox("Sort registers", compact=True, id="checkbox_sort_registers"),
         )
         yield Label("Operations")
 
         yield Label("(placeholder)", id="label_ctn_pollread")
         yield Vertical(
-            Checkbox("enabled", id="checkbox_cont_pollread", value=False, disabled=True),
+            Checkbox("enabled",  compact=True, id="checkbox_cont_pollread", value=False, disabled=True),
             Label("Poll frequency", id="label_poll_update_frq"),
             RadioSet(
                 RadioButton("1 Hz", value=False, id="radio_hz_1"),
@@ -73,6 +74,8 @@ class ActionsView(Vertical):
 
         self.watch(self.app, "registerValueChanged", lambda old, new: self.on_registerValueChanged(old, new))
         self.watch(self.app, "continuousRead", self.updateRadioSetFrqButtons)
+        self.query_one("#checkbox_sort_registers", Checkbox).value = self.app.sortedRegisters
+        self.query_one("#checkbox_autoselect", Checkbox).value = self.app.autoSelectPreviousRegister
         self.update()
 
     def updateRadioSetFrqButtons(self) -> None:
@@ -106,3 +109,11 @@ class ActionsView(Vertical):
         assert set.pressed_button.id.startswith("radio_hz_")
         hz = int(set.pressed_button.id[9:])
         self.app.continuousPollHz = hz
+
+    @on(Checkbox.Changed, "#checkbox_sort_registers")
+    def _checkbox_sort_changed(self, changed: Checkbox.Changed) -> None:
+        self.app.sortedRegisters = changed.control.value
+
+    @on(Checkbox.Changed, "#checkbox_autoselect")
+    def _checkbox_autoselect_changed(self, changed: Checkbox.Changed) -> None:
+        self.app.autoSelectPreviousRegister = changed.control.value
