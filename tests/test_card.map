@@ -33,3 +33,5 @@ ASYNC.SCALAR_PUSH                 0x00000001    0x000000CC    0x00000004    0x00
 RW_TEST.SCALAR                    0x00000001    0x00000012    0x00000004    0x00000001       32         0         1 RW
 RO_TEST.SCALAR                    0x00000001    0x00000012    0x00000004    0x00000001       32         0         1 RO
 WO_TEST.SCALAR                    0x00000001    0x00000012    0x00000004    0x00000001       32         0         1 WO
+
+TOP_LEVEL_SCALAR                  0x00000001    0x00000012    0x00000004    0x00000001       32         0         1 RW
