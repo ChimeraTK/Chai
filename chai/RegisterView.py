@@ -44,6 +44,9 @@ class RegisterTree(Tree):
 
         self._register_names = register_names
         for reg_name in register_names:
+            match = re.search(self.regExPattern, reg_name, flags=re.IGNORECASE)
+            if len(self.regExPattern) > 0 and not match:
+                continue
             split_name = reg_name.split('/')[1:]
             current_level = self._tree.root
             while len(split_name) > 1:
@@ -56,10 +59,8 @@ class RegisterTree(Tree):
                 if not node_added:
                     current_level = current_level.add(split_name[0])
                 split_name = split_name[1:]
-            finalPart: str = split_name[0]
-            match = re.search(self.regExPattern, finalPart, flags=re.IGNORECASE)
-            if len(self.regExPattern) == 0 or match:
-                current_level.add_leaf(split_name[0])
+
+            current_level.add_leaf(split_name[0])
 
     def compose(self) -> ComposeResult:
         self._tree.root.expand()
@@ -135,15 +136,11 @@ class RegisterView(Vertical):
     def _update_read_write_btn_status(self):
         if self.app.register is not None:
             self.query_one("#btn_read").disabled = (
-                # self.app.continuousRead or
+                self.app.continuousRead or
                 not self.app.register.accessor.isReadable())
             self.query_one("#btn_write").disabled = (
-                # self.app.continuousRead or
+                self.app.continuousRead or
                 not self.app.register.accessor.isWriteable())
-        if not self.app.pushMode:
-            # todo reconnect with pollread
-            pass
-            # self.query_one("#radio_set_freq").disabled = not self.app.continuousRead
 
     @on(Button.Pressed, "#btn_collapse")
     def _pressed_collapse(self) -> None:
