@@ -94,6 +94,25 @@ class RegisterTree(Tree):
 
         self.app.registerPath = currentRegisterPath
 
+    def checkAutoSelectPreviousRegister(self) -> None:
+        return
+        # TODO: re-enable auto-select previous register
+        if not self.app.autoSelectPreviousRegister:
+            return
+        if self.app.currentDevice is None:
+            return
+        if self.app.previouslySelectedRegister is None:
+            return
+        for node in self.walk(self._tree.root):
+            if node.label == self.app.previouslySelectedRegister:
+                node.select()
+                break
+
+    def walk(self, node):
+        yield node
+        for child in node.children:
+            yield from self.walk(child)
+
     def watch_regExPattern(self, value: str) -> None:
         if self.app.currentDevice is None:
             return
@@ -111,7 +130,7 @@ class RegisterView(Vertical):
                 Container(
                     InputWithEnterAction(id="regex_input", placeholder="Regex to filter registers",
                                          action=self.checkRegexAndrefreshTree, validators=[RegExValidator()], compact=False),
-                    Checkbox("Autoselect previous register", compact=True),
+                    Checkbox("Autoselect previous register", compact=True, id="checkbox_autoselect"),
                     Checkbox("Sort registers", compact=True, id="checkbox_sort_registers"),
                     Button("Collapse all", id="btn_collapse"),
                     Button("Expand all", id="btn_expand"),
@@ -179,6 +198,10 @@ class RegisterView(Vertical):
         self.app.sortedRegisters = changed.control.value
         rt = self.query_one(RegisterTree)
         rt.updateTree()
+
+    @on(Checkbox.Changed, "#checkbox_autoselect")
+    def _checkbox_autoselect_changed(self, changed: Checkbox.Changed) -> None:
+        self.app.autoSelectPreviousRegister = changed.control.value
 
 
 class RegExValidator(Validator):
