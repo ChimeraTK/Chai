@@ -64,9 +64,9 @@ DmapTree {
 
 RegisterView {
     RegisterTree {
-        height: auto;
+        height: 1fr;
+        min-height: 60vh;
         width: 1fr;
-        max-height: 40vh;
     }
     RegisterViewControls {
         InputWithEnterAction {
@@ -78,13 +78,46 @@ RegisterView {
         width: 1fr;
         align: left middle;
         margin: 1;
-        min-height: 10vh;
+    }
+
+    #registerTreeNodeControls {
+        layout: horizontal;
+        align: left top;
+        height: 3;
+        min-height: 3;
+        max-height: 3;
+    }
+    #content_action_buttons {
+        layout: horizontal;
+        align: right middle;
+        height: auto;
     }
     Horizontal {
         padding: 1;
 
         .left_pane {
             margin-right: 1;
+        }
+    }
+    #channel_input_container {
+        layout: horizontal;
+        align: right middle;
+        height: auto;
+        margin-right: 1;
+
+        #channel_input {
+            height: 3;
+            border: thick;
+            width: 6;
+            margin: 0 1;
+        }
+
+        Label {
+            margin: 1;
+            align: right middle;
+            height: auto;
+            width: auto;
+            text-align: end;
         }
     }
 
@@ -161,6 +194,7 @@ DeviceView #field_device_identifier {
     height: auto;
     min-height: 10vh;
 }
+
 
 
 ExceptionDialog {

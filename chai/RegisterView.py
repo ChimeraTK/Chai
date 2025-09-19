@@ -130,9 +130,10 @@ class RegisterView(Vertical):
                 Container(
                     InputWithEnterAction(id="regex_input", placeholder="Regex to filter registers",
                                          action=self.RefreshTree, validators=[RegExValidator()], compact=False),
-
-                    Button("Collapse all", id="btn_collapse"),
-                    Button("Expand all", id="btn_expand"),
+                    Container(
+                        Button("Collapse all", id="btn_collapse"),
+                        Button("Expand all", id="btn_expand"),
+                        id="registerTreeNodeControls"),
 
                     classes="RegisterViewControls"
                 ),
@@ -140,9 +141,15 @@ class RegisterView(Vertical):
                 classes="left_pane"),
             Container(
                 RegisterValueField(id="register_value_field"),
-                Vertical(
+                Container(
+                    Container(
+                        Label("Channel:", id="channelNumberLabel"),
+                        Input(value="0", placeholder="0", id="channel_input", type="integer", compact=True),
+                        id="channel_input_container"
+                    ),
                     Button("Read", disabled=True, id="btn_read"),
                     Button("Write", disabled=True, id="btn_write"),
+                    id="content_action_buttons"
                 ),
                 id="register_content",
                 classes="right_pane"),
@@ -152,14 +159,35 @@ class RegisterView(Vertical):
         self.query_one("#btn_read", Button).disabled = not self.app.enableReadButton
         self.query_one("#btn_write", Button).disabled = not self.app.enableWriteButton
         self.query_one("#btn_write", Button).label = "Write" if not self.app.dummyWrite else "Write (dummy)"
+        self.query_one("#channel_input_container").display = False
         self.watch(self.app, "continuousRead", lambda cr: self._update_read_write_btn_status())
         self.watch(self.app, "isOpen", lambda cr: self._update_read_write_btn_status())
         self.watch(self.app, "register", lambda cr: self._update_read_write_btn_status())
         self.watch(self.app, "sortedRegisters", lambda cr: self.RefreshTree())
+        self.watch(self.app, "channel", lambda channel: self.on_channel_changed(channel))
 
     def RefreshTree(self) -> None:
         rt = self.query_one(RegisterTree)
         rt.refresh()
+
+    def on_channel_changed(self, channel: int) -> None:
+        self.query_one("#channel_input", Input).value = str(channel)
+
+    def on_input_submitted(self, change: Input.Submitted) -> None:
+        if self.app.register is None:
+            change.input.value = str(self.app.channel)
+            return
+        _nChannels = self.app.register.info.getNumberOfChannels()
+        if change.value.isdigit():
+            value = int(change.value)
+        else:
+            # might be empty...
+            value = 0
+        if value >= _nChannels:
+            value = _nChannels - 1
+            change.input.value = str(value)
+            self.notify("Channel out of range.", severity="warning")
+        self.app.channel = value
 
     def _update_read_write_btn_status(self):
         if self.app.register is not None:
@@ -169,6 +197,12 @@ class RegisterView(Vertical):
             self.query_one("#btn_write").disabled = (
                 self.app.continuousRead or
                 not self.app.register.accessor.isWriteable())
+            if self.app.register.info.getNumberOfChannels() < 2:
+                self.query_one("#channel_input_container").display = False
+            else:
+                self.query_one("#channel_input_container").display = True
+                self.query_one("#channelNumberLabel", Label).update(
+                    f"Channel (0 - {self.app.register.info.getNumberOfChannels()-1}):")
 
     @on(Button.Pressed, "#btn_collapse")
     def _pressed_collapse(self) -> None:
