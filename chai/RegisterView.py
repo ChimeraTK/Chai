@@ -129,9 +129,8 @@ class RegisterView(Vertical):
                 RegisterTree("Registers"),
                 Container(
                     InputWithEnterAction(id="regex_input", placeholder="Regex to filter registers",
-                                         action=self.checkRegexAndrefreshTree, validators=[RegExValidator()], compact=False),
-                    Checkbox("Autoselect previous register", compact=True, id="checkbox_autoselect"),
-                    Checkbox("Sort registers", compact=True, id="checkbox_sort_registers"),
+                                         action=self.RefreshTree, validators=[RegExValidator()], compact=False),
+
                     Button("Collapse all", id="btn_collapse"),
                     Button("Expand all", id="btn_expand"),
 
@@ -153,12 +152,12 @@ class RegisterView(Vertical):
         self.query_one("#btn_read", Button).disabled = not self.app.enableReadButton
         self.query_one("#btn_write", Button).disabled = not self.app.enableWriteButton
         self.query_one("#btn_write", Button).label = "Write" if not self.app.dummyWrite else "Write (dummy)"
-        self.query_one("#checkbox_sort_registers", Checkbox).value = self.app.sortedRegisters
         self.watch(self.app, "continuousRead", lambda cr: self._update_read_write_btn_status())
         self.watch(self.app, "isOpen", lambda cr: self._update_read_write_btn_status())
         self.watch(self.app, "register", lambda cr: self._update_read_write_btn_status())
+        self.watch(self.app, "sortedRegisters", lambda cr: self.RefreshTree())
 
-    def checkRegexAndrefreshTree(self) -> None:
+    def RefreshTree(self) -> None:
         rt = self.query_one(RegisterTree)
         rt.refresh()
 
@@ -192,16 +191,6 @@ class RegisterView(Vertical):
         inp = self.query_one("#regex_input", InputWithEnterAction)
         rt.regExPattern = inp.value
         self._pressed_expand()
-
-    @on(Checkbox.Changed, "#checkbox_sort_registers")
-    def _checkbox_sort_changed(self, changed: Checkbox.Changed) -> None:
-        self.app.sortedRegisters = changed.control.value
-        rt = self.query_one(RegisterTree)
-        rt.updateTree()
-
-    @on(Checkbox.Changed, "#checkbox_autoselect")
-    def _checkbox_autoselect_changed(self, changed: Checkbox.Changed) -> None:
-        self.app.autoSelectPreviousRegister = changed.control.value
 
 
 class RegExValidator(Validator):

@@ -224,7 +224,7 @@ class LayoutApp(App):
     channel: Reactive[int] = Reactive(0)
     readAfterWrite: Reactive[bool] = Reactive(False)
     continuousRead: Reactive[bool] = Reactive(False)
-    sortedRegisters: bool = False
+    sortedRegisters: Reactive[bool] = Reactive(False)
     autoSelectPreviousRegister: bool = True
     previouslySelectedRegister: str | None = None
     pushMode: bool = False
