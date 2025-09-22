@@ -272,6 +272,13 @@ class LayoutApp(App):
             self.enableReadButton = False
             self.enableWriteButton = False
 
+        if open and self.register is not None:
+            try:
+                self.register.accessor.readLatest()
+                self.registerValueChanged = datetime.now()
+            except RuntimeError as e:
+                self.app.push_screen(ExceptionDialog("Error while reading from device", e, False))
+
     def watch_registerPath(self, path: str | None) -> None:
         if path is None or self.currentDevice is None:
             self.register = None
@@ -281,7 +288,7 @@ class LayoutApp(App):
         info = rc.getRegister(path)
 
         dd = info.getDataDescriptor()
-        if dd.rawDataType().getAsString() != "unknown" and dd.rawDataType().getAsString() != "none":
+        if da.AccessMode.raw in info.getSupportedAccessModes():
             # raw transfers are supported
             np_type = Utils.get_raw_numpy_type(dd.rawDataType())
             flags = [da.AccessMode.raw]
@@ -324,10 +331,9 @@ class LayoutApp(App):
             return
         try:
             self.register.accessor.readLatest()
+            self.registerValueChanged = datetime.now()
         except RuntimeError as e:
             self.push_screen(ExceptionDialog("Error reading from device", e, True))
-
-        self.registerValueChanged = datetime.now()
 
     @on(Button.Pressed, "#btn_write")
     def _pressed_write(self) -> None:
@@ -370,6 +376,16 @@ class LayoutApp(App):
 
         if self.pushMode:
             old_register.accessor.interrupt()
+
+        self.channel = 0
+        if new_register is not None:
+            self._isRaw = da.AccessMode.raw in new_register.accessor.getAccessModeFlags()
+            if self.isOpen:
+                try:
+                    new_register.accessor.readLatest()
+                    self.registerValueChanged = datetime.now()
+                except RuntimeError as e:
+                    self.app.push_screen(ExceptionDialog("Error reading from device", e, True))
 
     @work(exclusive=True, thread=True)
     def _update_push_loop(self) -> None:
