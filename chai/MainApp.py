@@ -272,7 +272,7 @@ class LayoutApp(App):
             self.enableReadButton = False
             self.enableWriteButton = False
 
-        if open and self.register is not None:
+        if open and self.register is not None and self.register.accessor.isReadable():
             try:
                 self.register.accessor.readLatest()
                 self.registerValueChanged = datetime.now()
@@ -346,7 +346,7 @@ class LayoutApp(App):
                 self.register.dummyWriteAccessor.write()
         except RuntimeError as e:
             self.push_screen(ExceptionDialog("Error while writing to device", e, True))
-        if self.readAfterWrite:
+        if self.readAfterWrite and self.register.accessor.isReadable():
             self._pressed_read()
 
     def watch_continuousRead(self, continuousRead) -> None:
@@ -380,7 +380,7 @@ class LayoutApp(App):
         self.channel = 0
         if new_register is not None:
             self._isRaw = da.AccessMode.raw in new_register.accessor.getAccessModeFlags()
-            if self.isOpen:
+            if self.isOpen and new_register.accessor.isReadable():
                 try:
                     new_register.accessor.readLatest()
                     self.registerValueChanged = datetime.now()
