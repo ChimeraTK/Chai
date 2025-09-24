@@ -38,7 +38,6 @@ class ConsoleHardwareInterface(Container):
 
 
 class NaviFooter(Footer):
-    # TODO: mark active screen in footer
     currentScreen: str
 
     def __init__(self, *args, **kwargs):
@@ -143,7 +142,7 @@ class MetaDataScreen(Screen):
 
     def compose(self) -> ComposeResult:
         yield Header()
-        yield RegisterInfo()
+        yield RegisterInfo(id="register_info")
         yield NaviFooter(currentScreen="meta")
 
 

@@ -43,20 +43,46 @@ EditValueScreen {
 }
 
 #register_info {
-    grid-size: 2;
-    grid-gutter: 0;
-    height: 17;
+    height: auto;
+    border: round $accent;
+    content-align: right middle;
+    align: right middle;
+    width: 1fr;
+
+    .info_box {
+        height: auto;
+        width: 1fr;
+        padding: 1;
+        content-align: right middle;
+        align: right middle;
+    }
+
+    .centered_row {
+        layout: horizontal;
+        align: right middle;
+        content-align: right middle;
+        height: auto;
+        width: 1fr;
+    }
+    .right_align {
+        text-align: right;
+        width: auto;
+        content-align: right middle;
+    }
+    .left_align {
+        text-align: left;
+        content-align: left middle;
+    }
+    .spacer {
+        width: 12;
+    }
+    #field_register_path {
+        height: auto;
+        content-align: left middle;
+        padding-left: 12;
+    }
 }
 
-#register_value_table {
-}
-
-#label_register_path {
-    column-span: 2;
-}
-#field_register_path {
-    column-span: 2;
-}
 
 DmapTree {
     min-height: 20%;
@@ -102,18 +128,22 @@ RegisterView {
     #channel_input_container {
         layout: horizontal;
         align: right middle;
-        height: auto;
+        height: 3;
         margin-right: 1;
 
         #channel_input {
-            height: 3;
-            border: thick;
+            height: 1;
+            border: none;
+            outline: none;
+            text-align: right;
             width: 6;
-            margin: 0 1;
+            margin: 0 ;
+            border-left: round $accent;
+            border-right: round $accent;
         }
 
         Label {
-            margin: 1;
+            margin: 0 1 0 0;
             align: right middle;
             height: auto;
             width: auto;

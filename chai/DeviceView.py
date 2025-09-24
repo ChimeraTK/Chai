@@ -136,7 +136,7 @@ class DmapView(Vertical):
             Label("Pick dmap file from tree with root (enter to refresh):"),
             InputWithEnterAction(id="field_root_dir", value=os.getcwd(),
                                  placeholder="Root directory", action=self._pressed_refresh_dir),
-            DmapTree("./", onlyDmap=True, showHidden=False, id="directory_tree"),  # TODO: open on double click
+            DmapTree("./", onlyDmap=True, showHidden=False, id="directory_tree"),
             Container(
                 Checkbox("Show hidden", id="checkbox_show_hidden", value=False, compact=True),
                 Checkbox("Only show .dmap files", id="checkbox_only_dmap", value=True, compact=True), classes="small_row"),
