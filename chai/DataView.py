@@ -85,6 +85,7 @@ class RegisterValueField(ScrollableContainer):
     def on_mount(self):
         self.watch(self.app, "registerValueChanged", lambda x: self.update())
         self.watch(self.app, "channel", lambda x: self.update())
+        self.watch(self.app, "register", lambda x: self.update())
 
     def on_key(self, event: events.Key) -> None:
         if event.key != 'enter':
@@ -126,7 +127,14 @@ class RegisterValueField(ScrollableContainer):
         table = self.query_one(DataTable)
         table.clear(True)
 
-        if self.app.register is None or not isinstance(self.app.register.accessor, da.TwoDRegisterAccessor):
+        if self.app.register is None:
+            return
+
+        if self.app.register.info.getDataDescriptor().fundamentalType() is da.FundamentalType.nodata:
+            table.add_columns("No data")
+            return
+
+        if not isinstance(self.app.register.accessor, da.TwoDRegisterAccessor):
             return
 
         if self._isRaw:
@@ -146,23 +154,45 @@ class RegisterValueField(ScrollableContainer):
                 table.add_row(value, label=str(element))
 
 
-class RegisterInfo(Grid):
+class RegisterInfo(Vertical):
     if TYPE_CHECKING:
         app: LayoutApp
 
     def compose(self) -> ComposeResult:
-        yield Label("Register Path", id="label_register_path")
-        yield Static(" ", id="field_register_path")
-        yield Label("Dimension")
-        yield Static("", id="label_dimensions")
-        yield Label("nElements")
-        yield Static("", id="label_nELements")
-        yield Label("nChannels")
-        yield Static("", id="label_nChannels")
-        yield Label("Data Type")
-        yield Static("", id="label_data_type")
-        yield Label("wait_for_new_data")
-        yield Static("", id="label_wait_for_new_data")
+        yield Container(
+            Label("Register Path:", id="label_register_path", classes="right_align"),
+            Static(" ", id="field_register_path"),
+            Container(
+                Label("Dimension:", classes="right_align"),
+                Static("", classes="spacer"),
+                Static("", id="label_dimensions", classes="left_align"),
+                classes="centered_row",
+            ),
+            Container(
+                Label("nElements:", classes="right_align"),
+                Static("", classes="spacer"),
+                Static("", id="label_nELements", classes="left_align"),
+                classes="centered_row",
+            ),
+            Container(
+                Label("nChannels:", classes="right_align"),
+                Static("", classes="spacer"),
+                Static("", id="label_nChannels", classes="left_align"),
+                classes="centered_row",
+            ),
+            Container(
+                Label("Data Type:", classes="right_align"),
+                Static("", classes="spacer"),
+                Static("", id="label_data_type", classes="left_align"),
+                classes="centered_row",
+            ),
+            Container(
+                Label("Access Mode:", classes="right_align"),
+                Static("", classes="spacer"),
+                Static("", id="label_wait_for_new_data", classes="left_align"),
+                classes="centered_row",
+            ),
+            classes="info_box")
 
     def on_mount(self):
         self.watch(self.app, "register", lambda register: self.on_regster_info_changed(register))
@@ -174,7 +204,15 @@ class RegisterInfo(Grid):
         self.query_one("#field_register_path", Static).update(info.getRegisterName())
         self.query_one("#label_nELements", Static).update(str(info.getNumberOfElements()))
         self.query_one("#label_nChannels", Static).update(str(info.getNumberOfChannels()))
+        # concatenate list of access modes to a comma separated string
+        modeStringList = []
+        modeList = info.getSupportedAccessModes()
+        if da.AccessMode.wait_for_new_data in modeList:
+            modeStringList.append("Wait for new data")
+        if da.AccessMode.raw in modeList:
+            modeStringList.append("RAW")
 
+        self.query_one("#label_wait_for_new_data", Static).update(", ".join(modeStringList))
         dd = info.getDataDescriptor()
         self.query_one("#label_data_type", Static).update(Utils.build_data_type_string(dd))
         if info.getNumberOfDimensions() == 0:

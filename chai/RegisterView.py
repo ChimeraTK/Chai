@@ -3,6 +3,8 @@ from typing import TYPE_CHECKING
 from textual.events import Mount
 if TYPE_CHECKING:
     from MainApp import LayoutApp
+    from textual.widgets.tree import TreeNode
+
 from chai.Utils import InputWithEnterAction
 from textual.app import ComposeResult
 from textual.containers import Horizontal, Vertical, Container
@@ -10,6 +12,7 @@ from textual.widgets import Button, Label, Tree, Input, Checkbox, Button, Input
 from textual import log, on
 from textual.reactive import Reactive
 from textual.validation import Validator, ValidationResult
+from textual.events import Click
 
 from chai.DataView import RegisterValueField
 from chai.ActionsView import ActionsView
@@ -208,7 +211,7 @@ class RegisterView(Vertical):
             else:
                 self.query_one("#channel_input_container").display = True
                 self.query_one("#channelNumberLabel", Label).update(
-                    f"Channel (0 - {self.app.register.info.getNumberOfChannels()-1}):")
+                    f"Ch. (0-{self.app.register.info.getNumberOfChannels()-1}):")
 
     @on(Button.Pressed, "#btn_collapse")
     def _pressed_collapse(self) -> None:
@@ -231,6 +234,23 @@ class RegisterView(Vertical):
         inp = self.query_one("#regex_input", InputWithEnterAction)
         rt.regExPattern = inp.value
         self._pressed_expand()
+
+    @on(Click)
+    def _on_double_click(self, event: Click) -> None:
+        if event.chain >= 2 and isinstance(event.widget, Tree) and "node" in event.style.meta:
+            tree = self.query_one(RegisterTree)
+            for node in tree.walk(tree._tree.root):
+                n: TreeNode = node
+
+                if n._id == event.style.meta["node"]:
+                    if self.app.registerPath is None:
+                        return
+                    if n.label is None:
+                        return
+                    if self.app.registerPath.endswith(n.label.plain):
+                        self.app.switch_screen("metadata")
+
+                    break
 
 
 class RegExValidator(Validator):
