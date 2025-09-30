@@ -47,12 +47,12 @@ class RegisterTree(Tree):
         register_names = []
         cat = device.getRegisterCatalogue()
         for reg in cat:
-            register_names.append(reg.getRegisterName())
+            register_names.append(str(reg.getRegisterName()))
         for reg in cat.hiddenRegisters():
             name: str = reg.getRegisterName()
             log(f"Hidden register: {name}")
             if name.startswith("/DUMMY_INTERRUPT_"):
-                register_names.append(name)
+                register_names.append(str(name))
         self._register_names = register_names
         self.updateTree()
 
