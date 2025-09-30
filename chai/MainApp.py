@@ -296,6 +296,8 @@ class LayoutApp(App):
             np_type = Utils.get_raw_numpy_type(dd.minimumDataType())
             flags = []
 
+        dummyWriteFlags = flags
+
         if da.AccessMode.wait_for_new_data in info.getSupportedAccessModes():
             # we cannot use raw and wait_for_new_data at the same time
             self.currentDevice.activateAsyncRead()
@@ -313,14 +315,12 @@ class LayoutApp(App):
             accessor = self.currentDevice.getTwoDRegisterAccessor(np_type, path, accessModeFlags=flags)
             if self.dummyWrite:
                 dummyWriteAccessor = self.currentDevice.getTwoDRegisterAccessor(
-                    np_type, dummyWritePath, accessModeFlags=flags)
+                    np_type, dummyWritePath, accessModeFlags=dummyWriteFlags)
         else:
             accessor = self.currentDevice.getVoidRegisterAccessor(path, accessModeFlags=flags)
             if self.dummyWrite:
                 dummyWriteAccessor = self.currentDevice.getVoidRegisterAccessor(
-                    dummyWritePath, accessModeFlags=flags)
-
-            path += ".DUMMY_WRITEABLE"
+                    dummyWritePath, accessModeFlags=dummyWriteFlags)
 
         self.register = AccessorHolder(accessor, info, dummyWriteAccessor)
 
