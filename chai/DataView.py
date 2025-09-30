@@ -103,6 +103,18 @@ class RegisterValueField(ScrollableContainer):
             return
         self.app.push_screen(EditValueScreen(self, table))
 
+    def currentlySelectedValue(self):
+        table = self.query_one(ContentTable)
+        if not table:
+            return 0
+        if table.cursor_coordinate is None:
+            return 0
+        if table.cursor_coordinate.row is None:
+            return 0
+        if table.cursor_coordinate.column is None:
+            return 0
+        return table.get_cell_at(table.cursor_coordinate)
+
     def cellEditDone(self, value) -> None:
         table = self.query_one(ContentTable)
         row = table.cursor_coordinate.row

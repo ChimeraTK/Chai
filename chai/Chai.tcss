@@ -8,7 +8,7 @@ Static {
 
 Button {
   border: none;
-  margin: 1;
+  margin: 0 1 0 0;
 }
 
 Input {
@@ -88,6 +88,10 @@ DmapTree {
     min-height: 20%;
 }
 
+#Btn_load_boards {
+    margin: 1;
+}
+
 RegisterView {
     RegisterTree {
         height: 1fr;
@@ -118,11 +122,14 @@ RegisterView {
         align: right middle;
         height: auto;
     }
-
+    #register_value_sparkline {
+        min-height: 1;
+        width: 1fr;
+    }
 
 
     Horizontal {
-        padding: 1;
+        padding: 1 1 0 1;
 
         .left_pane {
             margin-right: 1;
