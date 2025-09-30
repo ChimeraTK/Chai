@@ -71,6 +71,14 @@ class EditValueScreen(ModalScreen):
         self.app.pop_screen()
 
 
+class ContentTable(DataTable):
+
+    async def _on_click(self, event: events.Click) -> None:
+        await super()._on_click(event)
+        if event.button == 1 and event.chain >= 2:
+            self.app.push_screen(EditValueScreen(self.parent, self))
+
+
 class RegisterValueField(ScrollableContainer):
 
     _isRaw: bool = False
@@ -78,7 +86,7 @@ class RegisterValueField(ScrollableContainer):
         app: LayoutApp
 
     def compose(self) -> ComposeResult:
-        table = DataTable()
+        table = ContentTable()
         table.add_columns('Value', 'Raw (dec)', 'Raw (hex)')
         yield table
 
@@ -90,13 +98,13 @@ class RegisterValueField(ScrollableContainer):
     def on_key(self, event: events.Key) -> None:
         if event.key != 'enter':
             return
-        table = self.query_one(DataTable)
+        table = self.query_one(ContentTable)
         if not table:
             return
         self.app.push_screen(EditValueScreen(self, table))
 
     def cellEditDone(self, value) -> None:
-        table = self.query_one(DataTable)
+        table = self.query_one(ContentTable)
         row = table.cursor_coordinate.row
 
         if self.app.register is None or not isinstance(self.app.register.accessor, da.TwoDRegisterAccessor):
@@ -124,7 +132,7 @@ class RegisterValueField(ScrollableContainer):
                 self.app.register.accessor[self.app.channel][row]), update_width=True)
 
     def update(self) -> None:
-        table = self.query_one(DataTable)
+        table = self.query_one(ContentTable)
         table.clear(True)
 
         if self.app.register is None:
