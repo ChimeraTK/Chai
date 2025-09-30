@@ -113,7 +113,10 @@ class RegisterValueField(ScrollableContainer):
             return 0
         if table.cursor_coordinate.column is None:
             return 0
-        return table.get_cell_at(table.cursor_coordinate)
+        try:
+            return table.get_cell_at(table.cursor_coordinate)
+        except Exception:
+            return 0
 
     def cellEditDone(self, value) -> None:
         table = self.query_one(ContentTable)
