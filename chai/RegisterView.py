@@ -10,7 +10,7 @@ if TYPE_CHECKING:
 from chai.Utils import InputWithEnterAction
 from textual.app import ComposeResult
 from textual.containers import Horizontal, Vertical, Container
-from textual.widgets import Button, Label, Tree, Input, Checkbox, Button, Input, Static
+from textual.widgets import Button, Label, Tree, Input, Checkbox, Button, Input, Sparkline
 from textual import log, on
 from textual.reactive import Reactive
 from textual.validation import Validator, ValidationResult
@@ -149,6 +149,7 @@ class RegisterView(Vertical):
         app: LayoutApp
 
     _avg_update_interval_list: deque = deque(maxlen=10)
+    _registerValueQueue: deque = deque(maxlen=80)
 
     def compose(self) -> ComposeResult:
         yield Horizontal(
@@ -186,6 +187,9 @@ class RegisterView(Vertical):
                 id="register_content",
                 classes="right_pane"),
         )
+        yield Sparkline(id="register_value_sparkline",
+                        data=self._registerValueQueue,
+                        summary_function=max)
         yield Container(
             Label("(placeholder)", id="label_last_poll_update"),
 
@@ -218,6 +222,7 @@ class RegisterView(Vertical):
         self.query_one("#checkbox_cont_pollread", Checkbox).disabled = not self.app.enableReadButton
         self.query_one("#checkbox_cont_pollread", Checkbox).value = False
         self.app.continuousRead = False
+        self._registerValueQueue.clear()
 
     def on_registerValueChanged(self, old_time: datetime, new_time: datetime) -> None:
         self.query_one("#last_update_time", Label).update(str(new_time))
@@ -225,6 +230,15 @@ class RegisterView(Vertical):
             self._avg_update_interval_list.append((new_time - old_time).total_seconds())
             avg = sum(self._avg_update_interval_list) / len(self._avg_update_interval_list)
             self.query_one("#update_interval", Label).update(f"{round(avg * 1000)} ms")
+            sparkline = self.query_one("#register_value_sparkline", Sparkline)
+            table = self.query_one("#register_value_field", RegisterValueField)
+            if (len(self._registerValueQueue) == self._registerValueQueue.maxlen):
+                self._registerValueQueue.popleft()
+                # don't add duplicate values
+                return
+            self._registerValueQueue.append(table.currentlySelectedValue())
+
+            sparkline.refresh()
 
     def RefreshTree(self) -> None:
         rt = self.query_one(RegisterTree)
@@ -273,7 +287,6 @@ class RegisterView(Vertical):
     def _pressed_expand(self) -> None:
         rt = self.query_one(RegisterTree)
         rt._tree.root.expand_all()
-        log(self.app.size)
 
     @on(Input.Changed, "#regex_input")
     def _regex_changed(self, event: Input.Changed) -> None:
@@ -308,6 +321,16 @@ class RegisterView(Vertical):
     @on(Checkbox.Changed, "#checkbox_cont_pollread")
     def on_checkbox_changed(self, changed: Checkbox.Changed):
         self.app.continuousRead = changed.control.value
+
+    def updateSparkline(self) -> None:
+        if self.app.register is None:
+            return
+        if self.app.registerValue is None:
+            return
+        self._registerValueQueue.append(self.app.registerValue)
+        sparkline = self.query_one("#register_value_sparkline", Sparkline)
+        sparkline.refresh()
+        sparkline.data = list(self._registerValueQueue)
 
 
 class RegExValidator(Validator):
