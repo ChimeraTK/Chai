@@ -8,13 +8,14 @@ if TYPE_CHECKING:
 from chai.Utils import InputWithEnterAction
 from textual.app import ComposeResult
 from textual.containers import Horizontal, Vertical, Container
-from textual.widgets import Button, Label, Tree, Input, Checkbox, Button, Input
+from textual.widgets import Button, Label, Tree, Input, Checkbox, Button, Input, Static
 from textual import log, on
 from textual.reactive import Reactive
 from textual.validation import Validator, ValidationResult
 from textual.events import Click
+from textual.screen import ModalScreen
 
-from chai.DataView import RegisterValueField
+from chai.DataView import RegisterInfo, RegisterValueField
 from chai.ActionsView import ActionsView
 
 from chai import Utils
@@ -128,6 +129,19 @@ class RegisterTree(Tree):
         self.on_device_changed(self.app.currentDevice)
 
 
+class MetaPopUpScreen(ModalScreen):
+    def compose(self) -> ComposeResult:
+        yield Vertical(
+            RegisterInfo(id="register_info"),
+            Button("Close", id="metadata_dialog_close"),
+            id="metadata_dialog",
+        )
+
+    @on(Button.Pressed, "#metadata_dialog_close")
+    def pressed_close(self) -> None:
+        self.app.pop_screen()
+
+
 class RegisterView(Vertical):
     if TYPE_CHECKING:
         app: LayoutApp
@@ -236,8 +250,8 @@ class RegisterView(Vertical):
         self._pressed_expand()
 
     @on(Click)
-    def _on_double_click(self, event: Click) -> None:
-        if event.chain >= 2 and isinstance(event.widget, Tree) and "node" in event.style.meta:
+    def _on_right_click(self, event: Click) -> None:
+        if event.button == 3 and isinstance(event.widget, Tree) and "node" in event.style.meta:
             tree = self.query_one(RegisterTree)
             for node in tree.walk(tree._tree.root):
                 n: TreeNode = node
@@ -248,7 +262,8 @@ class RegisterView(Vertical):
                     if n.label is None:
                         return
                     if self.app.registerPath.endswith(n.label.plain):
-                        self.app.switch_screen("metadata")
+                        # self.app.switch_screen("metadata")
+                        self.app.push_screen(MetaPopUpScreen())
 
                     break
 

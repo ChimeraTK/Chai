@@ -1,20 +1,18 @@
+from __future__ import annotations
 from typing import TYPE_CHECKING
+from textual.widgets._radio_button import RadioButton
 if TYPE_CHECKING:
     from MainApp import LayoutApp
-from chai.ExceptionDialog import ExceptionDialog
 from textual.app import ComposeResult
 from textual.containers import Vertical
-from textual.widgets import Button, Label, Static, Checkbox, Button, RadioSet, RadioButton
+from textual.widgets import Label, Checkbox, RadioSet, RadioButton
 
 from textual import on
 
 import deviceaccess as da
 from datetime import datetime
 
-from chai.DataView import RegisterValueField
-
 from collections import deque
-from chai.Utils import AccessorHolder
 
 
 class ActionsView(Vertical):
@@ -31,11 +29,8 @@ class ActionsView(Vertical):
             Checkbox("Read after write",  compact=True, id="checkbox_read_after_write"),
             Checkbox("Autoselect previous register", compact=True, id="checkbox_autoselect"),
             Checkbox("Sort registers", compact=True, id="checkbox_sort_registers"),
-        )
-        yield Label("Operations")
-
-        yield Label("(placeholder)", id="label_ctn_pollread")
-        yield Vertical(
+            Label("Operations"),
+            Label("(placeholder)", id="label_ctn_pollread"),
             Checkbox("enabled",  compact=True, id="checkbox_cont_pollread", value=False, disabled=True),
             Label("Poll frequency", id="label_poll_update_frq"),
             RadioSet(
@@ -43,11 +38,12 @@ class ActionsView(Vertical):
                 RadioButton("30 Hz", value=True, id="radio_hz_30"),
                 RadioButton("100 Hz", value=False, id="radio_hz_100"),
                 disabled=True,
+                compact=True,
                 id="radio_set_freq"
             ),
             Label("(placeholder)", id="label_last_poll_update"),
             Label("(never)", id="last_update_time"),
-            Label("Avg. update interval"),
+            Label("Avg. update Δ"),
             Label("(n/a)", id="update_interval"),
         )
 
