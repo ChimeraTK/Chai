@@ -153,6 +153,7 @@ RegisterView {
 
 }
 
+
 .small_row {
         layout: horizontal;
         align: right middle;
@@ -251,4 +252,32 @@ ExceptionDialog {
 }
 #execption_dialog_buttons {
     align: center middle;
+}
+
+#radio_set_frequency {
+    layout: horizontal;
+    align: center middle;
+    height: auto;
+    width: auto;
+    margin: 1;
+    border: $accent 50% round;
+    padding: 0 1;
+}
+
+MetaPopUpScreen {
+    layout: vertical;
+    align: center middle;
+    #metadata_dialog {
+        width: 60;
+        height: 14;
+        border: heavy $background 80%;
+        background: $surface;
+        }
+    #metadata_dialog_close {
+        content-align: right middle;
+        margin: 0 0 0 0;
+        width:  auto;
+        height: auto;
+    }
+
 }
