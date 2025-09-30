@@ -118,6 +118,9 @@ RegisterView {
         align: right middle;
         height: auto;
     }
+
+
+
     Horizontal {
         padding: 1;
 
@@ -151,8 +154,32 @@ RegisterView {
         }
     }
 
+    .poll_status_bar {
+        layout: horizontal;
+        align: center middle;
+        height: auto;
+        width: 1fr;
+        Label {
+            padding: 0 1 0 0;
+        }
+    }
+
 }
 
+#btn_read {
+    max-width: 6;
+}
+#btn_write {
+    max-width: 7;
+}
+
+#btn_collapse {
+    max-width: 14;
+}
+
+#btn_expand {
+    max-width: 12;
+}
 
 .small_row {
         layout: horizontal;
@@ -179,14 +206,18 @@ DeviceView #device_list_top_container {
 DeviceView #device_status_container {
     layout: vertical;
     height: auto;
-    width: 1fr;
+    max-width: 18;
     margin-left: 1;
     border: $accent 50% round;
+    content-align: center middle !important;
+    align: center middle !important;
 }
 
 DeviceView #btn_open_close_device {
-    width: 1fr;
-    margin: 0 4 1 4;
+    max-width: 7;
+    margin: 1 4;
+    align: center middle !important;
+    content-align: center middle;
 }
 
 DeviceView #device_list {

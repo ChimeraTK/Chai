@@ -1,3 +1,5 @@
+from collections import deque
+from datetime import datetime
 from typing import TYPE_CHECKING
 
 from textual.events import Mount
@@ -146,6 +148,8 @@ class RegisterView(Vertical):
     if TYPE_CHECKING:
         app: LayoutApp
 
+    _avg_update_interval_list: deque = deque(maxlen=10)
+
     def compose(self) -> ComposeResult:
         yield Horizontal(
             Container(
@@ -174,8 +178,21 @@ class RegisterView(Vertical):
                     Button("Write", disabled=True, id="btn_write"),
                     id="content_action_buttons"
                 ),
+                Container(
+                    Label("(placeholder)", id="label_ctn_pollread"),
+                    Checkbox("",  compact=True, id="checkbox_cont_pollread", value=False, disabled=True),
+                    classes="small_row",
+                ),
                 id="register_content",
                 classes="right_pane"),
+        )
+        yield Container(
+            Label("(placeholder)", id="label_last_poll_update"),
+
+            Label("(never)", id="last_update_time"),
+            Label("Avg. update Δ"),
+            Label("(n/a)", id="update_interval"),
+            classes="poll_status_bar"
         )
 
     def on_mount(self, event: Mount) -> None:
@@ -188,6 +205,26 @@ class RegisterView(Vertical):
         self.watch(self.app, "register", lambda cr: self._update_read_write_btn_status())
         self.watch(self.app, "sortedRegisters", lambda cr: self.RefreshTree())
         self.watch(self.app, "channel", lambda channel: self.on_channel_changed(channel))
+        self.watch(self.app, "registerValueChanged", lambda old, new: self.on_registerValueChanged(old, new))
+        self.watch(self.app, "register", lambda register: self.update())
+        self.watch(self.app, "isOpen", lambda open: self.update())
+        self.update()
+
+    def update(self) -> None:
+        self.query_one("#label_ctn_pollread", Label).update(
+            "Continuous Read" if self.app.pushMode else "Continuous Poll")
+        self.query_one("#label_last_poll_update", Label).update(
+            "Last update:" if self.app.pushMode else "Last poll:")
+        self.query_one("#checkbox_cont_pollread", Checkbox).disabled = not self.app.enableReadButton
+        self.query_one("#checkbox_cont_pollread", Checkbox).value = False
+        self.app.continuousRead = False
+
+    def on_registerValueChanged(self, old_time: datetime, new_time: datetime) -> None:
+        self.query_one("#last_update_time", Label).update(str(new_time))
+        if old_time is not None:
+            self._avg_update_interval_list.append((new_time - old_time).total_seconds())
+            avg = sum(self._avg_update_interval_list) / len(self._avg_update_interval_list)
+            self.query_one("#update_interval", Label).update(f"{round(avg * 1000)} ms")
 
     def RefreshTree(self) -> None:
         rt = self.query_one(RegisterTree)
@@ -236,6 +273,7 @@ class RegisterView(Vertical):
     def _pressed_expand(self) -> None:
         rt = self.query_one(RegisterTree)
         rt._tree.root.expand_all()
+        log(self.app.size)
 
     @on(Input.Changed, "#regex_input")
     def _regex_changed(self, event: Input.Changed) -> None:
@@ -266,6 +304,10 @@ class RegisterView(Vertical):
                         self.app.push_screen(MetaPopUpScreen())
 
                     break
+
+    @on(Checkbox.Changed, "#checkbox_cont_pollread")
+    def on_checkbox_changed(self, changed: Checkbox.Changed):
+        self.app.continuousRead = changed.control.value
 
 
 class RegExValidator(Validator):
