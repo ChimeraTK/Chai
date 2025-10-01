@@ -1,5 +1,8 @@
 import numpy as np
 import deviceaccess as da
+from textual.widgets import Input
+from collections.abc import Callable
+
 
 def get_raw_numpy_type(raw_type):
     conversion = {
@@ -8,6 +11,7 @@ def get_raw_numpy_type(raw_type):
         "uint64": np.uint64, "float32": np.float32, "float64": np.float64, "string": str,
         "Boolean": bool, "Void": "void", "unknown": "unknown"}
     return conversion[raw_type.getAsString()]
+
 
 def build_data_type_string(data_desriptor) -> str:
     type_string = str(data_desriptor.fundamentalType())
@@ -20,3 +24,26 @@ def build_data_type_string(data_desriptor) -> str:
         else:
             type_string += " fractional"
     return type_string.title()
+
+
+class AccessorHolder:
+    def __init__(self, accessor: da.TransferElementBase, info: da.RegisterInfo,
+                 dummyWriteAccessor: da.TransferElementBase | None):
+        self.accessor = accessor
+        self.dummyWriteAccessor = dummyWriteAccessor
+        self.info = info
+    accessor: da.TransferElementBase
+    dummyWriteAccessor: da.TransferElementBase | None
+    info: da.RegisterInfo
+
+
+class InputWithEnterAction(Input):
+    action: Callable[[], None] = lambda: None
+
+    def __init__(self, *args, **kwargs):
+        self.action = kwargs.pop("action", None)
+        super().__init__(*args, **kwargs)
+
+    def _key_enter(self, key) -> None:
+        if key.key == "enter":
+            self.action()
