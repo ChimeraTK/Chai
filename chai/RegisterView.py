@@ -194,7 +194,7 @@ class RegisterView(Vertical):
             Label("(placeholder)", id="label_last_poll_update"),
 
             Label("(never)", id="last_update_time"),
-            Label("Avg. update Δ"),
+            Label("Avg. update Δ", id="label_avg_update_interval"),
             Label("(n/a)", id="update_interval"),
             classes="poll_status_bar"
         )
@@ -226,6 +226,13 @@ class RegisterView(Vertical):
 
     def on_registerValueChanged(self, old_time: datetime, new_time: datetime) -> None:
         self.query_one("#last_update_time", Label).update(str(new_time))
+        if not self.app.continuousRead:
+            self.query_one("#update_interval", Label).display = False
+            self.query_one("#label_avg_update_interval", Label).display = False
+            return
+        else:
+            self.query_one("#update_interval", Label).display = True
+            self.query_one("#label_avg_update_interval", Label).display = True
         if old_time is not None:
             self._avg_update_interval_list.append((new_time - old_time).total_seconds())
             avg = sum(self._avg_update_interval_list) / len(self._avg_update_interval_list)
@@ -326,6 +333,8 @@ class RegisterView(Vertical):
         if self.app.register is None:
             return
         if self.app.registerValue is None:
+            return
+        if not self.app.continuousRead:
             return
         self._registerValueQueue.append(self.app.registerValue)
         sparkline = self.query_one("#register_value_sparkline", Sparkline)
