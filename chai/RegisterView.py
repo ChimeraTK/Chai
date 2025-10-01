@@ -222,7 +222,6 @@ class RegisterView(Vertical):
         self.query_one("#checkbox_cont_pollread", Checkbox).disabled = not self.app.enableReadButton
         self.query_one("#checkbox_cont_pollread", Checkbox).value = False
         self.app.continuousRead = False
-        self._registerValueQueue.clear()
 
     def on_registerValueChanged(self, old_time: datetime, new_time: datetime) -> None:
         self.query_one("#last_update_time", Label).update(str(new_time))
@@ -328,6 +327,9 @@ class RegisterView(Vertical):
     @on(Checkbox.Changed, "#checkbox_cont_pollread")
     def on_checkbox_changed(self, changed: Checkbox.Changed):
         self.app.continuousRead = changed.control.value
+        assert self._registerValueQueue.maxlen is not None
+        self._registerValueQueue.clear()
+        self._registerValueQueue.extend([0] * self._registerValueQueue.maxlen)
 
     def updateSparkline(self) -> None:
         if self.app.register is None:
@@ -338,8 +340,8 @@ class RegisterView(Vertical):
             return
         self._registerValueQueue.append(self.app.registerValue)
         sparkline = self.query_one("#register_value_sparkline", Sparkline)
-        sparkline.refresh()
         sparkline.data = list(self._registerValueQueue)
+        sparkline.refresh()
 
 
 class RegExValidator(Validator):
