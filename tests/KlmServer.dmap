@@ -1,4 +1,6 @@
 #@LOAD_LIB /home/cwillner/software/install-debug/lib/libChimeraTK-DeviceAccess-DoocsBackend.so
 # a comment
-device    (sharedMemoryDummy?map=KlmDummy.map)
-test_card (sharedMemoryDummy?map=test_card.map)
+device            (sharedMemoryDummy?map=KlmDummy.map)
+test_card         (sharedMemoryDummy?map=test_card.map)
+runtime_error     (pci:doesnotexist?map=test_card.map)
+pcie_dummy        (pci:pcieunidummys6?map=mtcadummy.map)
