@@ -81,7 +81,6 @@ class ContentTable(DataTable):
 
 class RegisterValueField(ScrollableContainer):
 
-    _isRaw: bool = False
     if TYPE_CHECKING:
         app: LayoutApp
 
@@ -125,7 +124,7 @@ class RegisterValueField(ScrollableContainer):
         if self.app.register is None or not isinstance(self.app.register.accessor, da.TwoDRegisterAccessor):
             return
 
-        if self._isRaw:
+        if self.app._isRaw:  # was self._isRaw why not checking the app instead of having a local member?
 
             if table.cursor_coordinate.column == 0:  # "Value" (cooked)
                 self.app.register.accessor.setAsCooked(self.app.channel, row, value)
@@ -135,7 +134,9 @@ class RegisterValueField(ScrollableContainer):
                 self.app.register.accessor[self.app.channel][row] = int(value, 16)
 
             table.update_cell_at(
-                coordinate=Coordinate(row, 0), value=self.app.register.accessor.getAsCooked(str, self.app.channel, row), update_width=True)
+                coordinate=Coordinate(row, 0), value=self.app.register.accessor.getAsCooked(
+                    # str, # what is that string for?
+                    self.app.channel, row), update_width=True)
             table.update_cell_at(coordinate=Coordinate(row, 1), value=str(
                 self.app.register.accessor[self.app.channel][row]), update_width=True)
             table.update_cell_at(coordinate=Coordinate(row, 2), value=hex(
@@ -160,12 +161,12 @@ class RegisterValueField(ScrollableContainer):
         if not isinstance(self.app.register.accessor, da.TwoDRegisterAccessor):
             return
 
-        if self._isRaw:
+        if self.app._isRaw:
             table.add_columns('Value', 'Raw (dec)', 'Raw (hex)')
             for element, value in enumerate(self.app.register.accessor[self.app.channel]):
                 table.add_row(
                     self.app.register.accessor.getAsCooked(
-                        str,
+                        # str, # where is that from?
                         self.app.channel,
                         element),
                     value,
