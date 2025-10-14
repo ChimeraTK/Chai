@@ -16,6 +16,7 @@ from chai import Utils
 
 import deviceaccess as da
 from chai.Utils import AccessorHolder
+from numpy import dtype
 
 
 class EditValueScreen(ModalScreen):
@@ -34,10 +35,10 @@ class EditValueScreen(ModalScreen):
         col = self.table.cursor_coordinate.column
         if col == 0:
             # cooked
-            validPattern = r'^[0-9]*(\.[0-9]*)?$'
+            validPattern = r'^-?[0-9]*(\.[0-9]*)?$'
         elif col == 1:
             # raw decimal
-            validPattern = r'^[0-9]*$'
+            validPattern = r'^-?[0-9]*$'
         elif col == 2:
             # raw hex
             validPattern = r'^(0x)?[0-9a-fA-F]*$'
@@ -137,15 +138,23 @@ class RegisterValueField(ScrollableContainer):
                 coordinate=Coordinate(row, 0), value=self.app.register.accessor.getAsCooked(
                     # str, # what is that string for?
                     self.app.channel, row), update_width=True)
+            valueType: dtype = self.app.register.accessor.getValueType()
             table.update_cell_at(coordinate=Coordinate(row, 1), value=str(
                 self.app.register.accessor[self.app.channel][row]), update_width=True)
-            table.update_cell_at(coordinate=Coordinate(row, 2), value=hex(
-                self.app.register.accessor[self.app.channel][row]), update_width=True)
+            convertedHex = self.signed_to_unsigned_hex(
+                self.app.register.accessor[self.app.channel][row], valueType.itemsize*8)
+            table.update_cell_at(coordinate=Coordinate(row, 2), value=convertedHex, update_width=True)
 
         else:
             self.app.register.accessor[self.app.channel][row] = int(value)
             table.update_cell_at(coordinate=Coordinate(row, 0), value=str(
                 self.app.register.accessor[self.app.channel][row]), update_width=True)
+
+    def signed_to_unsigned_hex(self, value: int, bits=32) -> str:
+        # Mask the value to the specified number of bits
+        mask = (1 << bits) - 1
+        unsigned_value = value & mask
+        return hex(unsigned_value)
 
     def update(self) -> None:
         table = self.query_one(ContentTable)
@@ -172,6 +181,7 @@ class RegisterValueField(ScrollableContainer):
                     value,
                     hex(value),
                     label=str(element))
+                log(f"Row {element}: cooked {self.app.register.accessor.getAsCooked(self.app.channel, element)}, raw {value} (0x{hex(value)})")
         else:
             table.add_columns('Value')
             for element, value in enumerate(self.app.register.accessor[self.app.channel]):

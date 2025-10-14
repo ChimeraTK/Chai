@@ -17,8 +17,8 @@ else()
   set(python_install_path "lib/python${Python_VERSION_MAJOR}.${Python_VERSION_MINOR}/site-packages")
 endif()
 
-# dragon_inject_dependency(textual)
-# dragon_inject_dependency(ChimeraTK-DeviceAccess-PythonBindings)
+#dragon_inject_dependency(textual)
+#dragon_inject_dependency(ChimeraTK-DeviceAccess-PythonBindings)
 
 # install programs and python modules
 install(PROGRAMS ${PROJECT_SOURCE_DIR}/Chai.py DESTINATION bin RENAME chai)
