@@ -43,7 +43,7 @@
     pip install textual
     ```
 
-3. Chai will be available as an official Debian package soon. Once available, you can install it using:
+3. Chai will be available as a Debian package in the [DOOCS Debian repository](https://xwiki.desy.de/xwiki/bin/view/DOOCS/Documentation/DOOCS%20Installation%20Manual/) soon. Once available, you can install it using:
 
     ```sh
     sudo apt-get install chai
@@ -79,7 +79,6 @@ We welcome contributions from the community! If you wish to contribute, please f
 3. Make your changes and commit them with clear and concise messages.
 4. Push your changes to your fork.
 5. Create a pull request detailing your changes.
-
 
 ## License
 
