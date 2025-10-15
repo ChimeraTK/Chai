@@ -18,8 +18,8 @@
 - Supports mouse and keyboard interactions
 - View device status, register contents, and properties
 - Read and write register values
-- Auto-updating at 1Hz and 100Hz to mimic original QtHardMon
-- Graphical display of value history (intended feature)
+- Auto-updating at 1Hz, 30Hz and 100Hz to mimic original QtHardMon
+- Graphical display of value history
 
 ## Installation
 
@@ -64,6 +64,12 @@ Once the TUI is open, you can:
 - Read and write values to registers.
 - Enable auto-updating to refresh data at 1Hz or 100Hz.
 
+## Issues with Putty
+
+If you are experiencing unicode character ir color issues PuTTY, it might be solved by using another font.
+[Nerdfonts](https://www.nerdfonts.com/font-downloads) proved to solve the character issue.
+Better readability of the colors and a closer match to the Ubuntu experience can be achieved with [this guide](https://github.com/jblaine/solarized-and-modern-putty) to change PuTTY's default setting.
+
 ## Contributing
 
 We welcome contributions from the community! If you wish to contribute, please follow these steps:
@@ -74,7 +80,6 @@ We welcome contributions from the community! If you wish to contribute, please f
 4. Push your changes to your fork.
 5. Create a pull request detailing your changes.
 
-Please ensure your contributions adhere to our [Code of Conduct](CONDUCT.md).
 
 ## License
 
