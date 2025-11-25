@@ -276,7 +276,8 @@ class RegisterView(Vertical):
                 not self.app.register.accessor.isReadable())
             self.query_one("#btn_write").disabled = (
                 self.app.continuousRead or
-                not self.app.register.accessor.isWriteable())
+                ( not self.app.register.accessor.isWriteable()) and not self.app.dummyWrite)
+            self.query_one("#btn_write", Button).label = "Write" if not self.app.dummyWrite else "Write (dummy)"
             if self.app.register.info.getNumberOfChannels() < 2:
                 self.query_one("#channel_input_container").display = False
             else:
