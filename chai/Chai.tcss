@@ -177,7 +177,7 @@ RegisterView {
     max-width: 6;
 }
 #btn_write {
-    max-width: 7;
+    max-width: 16;
 }
 
 #btn_collapse {
