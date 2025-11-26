@@ -342,6 +342,7 @@ class LayoutApp(App):
             if self.register.dummyWriteAccessor is None:
                 self.register.accessor.write()
             else:
+                self.register.dummyWriteAccessor.set(self.register.accessor.get())
                 self.register.dummyWriteAccessor.write()
         except RuntimeError as e:
             self.push_screen(ExceptionDialog("Error while writing to device", e, True))
