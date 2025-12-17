@@ -30,17 +30,19 @@ from chai.Utils import AccessorHolder
 
 class RegisterTree(Tree):
 
-    _tree: Tree[dict] = Tree("Registers")
     _register_names = []
     regExPattern: Reactive[str] = Reactive("")
     if TYPE_CHECKING:
         app: LayoutApp
 
     def on_mount(self) -> None:
+        self.root.expand()
+        self.show_root = False
+
         self.watch(self.app, "currentDevice", lambda device: self.on_device_changed(device))
 
     def on_device_changed(self, device: da.Device) -> None:
-        self._tree.clear()
+        self.clear()
         if device is None:
             return
 
@@ -50,14 +52,13 @@ class RegisterTree(Tree):
             register_names.append(str(reg.getRegisterName()))
         for reg in cat.hiddenRegisters():
             name: str = reg.getRegisterName()
-            log(f"Hidden register: {name}")
             if name.startswith("/DUMMY_INTERRUPT_"):
                 register_names.append(str(name))
         self._register_names = register_names
         self.updateTree()
 
     def updateTree(self) -> None:
-        self._tree.clear()
+        self.clear()
         if self.app.currentDevice is None:
             return
 
@@ -69,7 +70,7 @@ class RegisterTree(Tree):
             if len(self.regExPattern) > 0 and not match:
                 continue
             split_name = reg_name.split('/')[1:]
-            current_level = self._tree.root
+            current_level = self.root
             while len(split_name) > 1:
                 node_added = False
                 for child in current_level.children:
@@ -82,11 +83,6 @@ class RegisterTree(Tree):
                 split_name = split_name[1:]
 
             current_level.add_leaf(split_name[0])
-
-    def compose(self) -> ComposeResult:
-        self._tree.root.expand()
-        self._tree.show_root = False
-        yield self._tree
 
     def on_tree_node_selected(self, selected):
         if selected.node.is_root:
@@ -276,7 +272,7 @@ class RegisterView(Vertical):
                 not self.app.register.accessor.isReadable())
             self.query_one("#btn_write").disabled = (
                 self.app.continuousRead or
-                ( not self.app.register.accessor.isWriteable()) and not self.app.dummyWrite)
+                (not self.app.register.accessor.isWriteable()) and not self.app.dummyWrite)
             self.query_one("#btn_write", Button).label = "Write" if not self.app.dummyWrite else "Write (dummy)"
             if self.app.register.info.getNumberOfChannels() < 2:
                 self.query_one("#channel_input_container").display = False
